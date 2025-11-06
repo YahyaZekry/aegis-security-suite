@@ -1,0 +1,36 @@
+[Unit]
+Description=Garuda Security Suite Behavioral Monitor
+Documentation=https://github.com/garuda-security-suite/behavioral-analysis
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=garuda
+Group=garuda
+Environment=SECURITY_SUITE_HOME=/opt/garuda-security-suite
+WorkingDirectory=/opt/garuda-security-suite/scripts
+ExecStart=/opt/garuda-security-suite/scripts/behavioral-monitor.sh
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=10
+Restart=on-failure
+RestartSec=30
+
+# Security settings
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/garuda-security-suite/configs
+ReadWritePaths=/opt/garuda-security-suite/logs
+ReadWritePaths=/opt/garuda-security-suite/evidence
+ReadWritePaths=/opt/garuda-security-suite/quarantine
+ReadWritePaths=/tmp
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=garuda-behavioral-monitor
+
+[Install]
+WantedBy=multi-user.target

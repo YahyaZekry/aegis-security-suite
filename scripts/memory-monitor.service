@@ -1,0 +1,22 @@
+[Unit]
+Description=Garuda Security Suite Memory Monitor
+Documentation=https://github.com/garuda-security-suite/memory-monitor
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+ExecStart=${SECURITY_SUITE_HOME}/scripts/memory-monitor.sh start
+Restart=on-failure
+RestartSec=30
+
+# Environment
+Environment=SECURITY_SUITE_HOME=${SECURITY_SUITE_HOME}
+Environment=LOGS_DIR=${SECURITY_SUITE_HOME}/logs
+Environment=MEMORY_THRESHOLD_WARNING=80
+Environment=MEMORY_THRESHOLD_CRITICAL=90
+Environment=PROCESS_MEMORY_LIMIT=500
+Environment=CHECK_INTERVAL=30
+
+[Install]
+WantedBy=default.target

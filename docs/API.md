@@ -479,7 +479,7 @@ The main configuration file is located at `configs/security-config.conf` and fol
 
 # Dynamic path configuration
 SECURITY_SUITE_HOME="$HOME/security-suite"
-SCRIPTS_DIR="$SECURITY_SUITE_HOME/scripts"
+SCRIPTS_DIR="$SECURITY_SUITE_HOME/src/core/scripts"
 LOGS_DIR="$SECURITY_SUITE_HOME/logs"
 CONFIGS_DIR="$SECURITY_SUITE_HOME/configs"
 BACKUPS_DIR="$SECURITY_SUITE_HOME/backups"
@@ -543,13 +543,13 @@ The logging system supports the following severity levels:
 #!/bin/bash
 # Load configuration and functions
 source "$HOME/security-suite/configs/security-config.conf"
-source "$HOME/security-suite/scripts/common-functions.sh"
+source "$HOME/security-suite/src/core/scripts/common-functions.sh"
 
 # Initialize logging
 init_logging "manual"
 
 # Perform ClamAV scan
-source "$HOME/security-suite/scripts/scanners/clamav-scanner.sh"
+source "$HOME/security-suite/src/core/scripts/scanners/clamav-scanner.sh"
 clamav_scan "/home/user/Documents"
 
 # Check result
@@ -566,7 +566,7 @@ fi
 #!/bin/bash
 # Custom scanner integration example
 
-source "$HOME/security-suite/scripts/common-functions.sh"
+source "$HOME/security-suite/src/core/scripts/common-functions.sh"
 
 # Initialize logging
 init_logging "manual")
@@ -600,7 +600,7 @@ custom_security_scan "/home/user/Documents"
 #!/bin/bash
 # Error handling example
 
-source "$HOME/security-suite/scripts/common-functions.sh"
+source "$HOME/security-suite/src/core/scripts/common-functions.sh"
 
 # Set up error handling
 set -e

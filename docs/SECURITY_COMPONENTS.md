@@ -6,7 +6,7 @@ This document describes the comprehensive security components implemented in the
 
 ## Components
 
-### 1. Enhanced Error Handling Framework (`scripts/common-functions.sh`)
+### 1. Enhanced Error Handling Framework (`src/core/scripts/common-functions.sh`)
 
 #### Features
 - **Comprehensive Logging System**: Multi-level logging with severity levels (DEBUG, INFO, WARNING, ERROR, CRITICAL)
@@ -51,7 +51,7 @@ Monitors system resources during operation execution.
   - `max_disk_mb`: Disk warning threshold in MB (default: 100)
 - **Returns**: Exit code of operation
 
-### 2. Secure Sudo Wrapper System (`scripts/sudo-wrapper.sh`)
+### 2. Secure Sudo Wrapper System (`src/core/scripts/sudo-wrapper.sh`)
 
 #### Features
 - **Command Whitelisting**: Only pre-approved sudo commands can be executed
@@ -129,7 +129,7 @@ Removes security tools with validation.
 | pacman | `pacman(-Sy|-S|-Rns)?(--noconfirm|--needed)? .*` | Package management |
 | systemctl | `systemctl (--user)?(start|stop|restart|enable|disable) .*` | Service management |
 
-### 3. Enhanced Input Validation System (`scripts/input-validation.sh`)
+### 3. Enhanced Input Validation System (`src/core/scripts/input-validation.sh`)
 
 #### Features
 - **Security Patterns**: Pre-defined validation patterns for common input types
@@ -239,7 +239,7 @@ Interactive input with real-time validation.
 
 ## Testing
 
-The security components include comprehensive test suite (`scripts/test-security-components.sh`) that validates:
+The security components include comprehensive test suite (`src/core/scripts/test-security-components.sh`) that validates:
 
 - Error handling and recovery mechanisms
 - Input validation and sanitization
@@ -249,7 +249,7 @@ The security components include comprehensive test suite (`scripts/test-security
 
 Run tests with:
 ```bash
-./scripts/test-security-components.sh
+./src/core/scripts/test-security-components.sh
 ```
 
 ## Integration

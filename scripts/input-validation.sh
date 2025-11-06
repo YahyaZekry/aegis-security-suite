@@ -46,8 +46,6 @@ sanitize_input() {
     
     # Remove control characters except newlines and tabs
     input=$(echo "$input" | tr -d '\000-\010\013\014\016-\037\177-\377')
-    # Add space back if it was removed
-    input=$(echo "$input" | sed 's/testinput/test input/')
     
     # Type-specific sanitization
     case "$input_type" in

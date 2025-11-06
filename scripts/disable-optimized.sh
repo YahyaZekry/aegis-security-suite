@@ -1,0 +1,35 @@
+#!/bin/bash
+# Disable Optimized Components Script
+
+SCRIPT_DIR="$(dirname "$0")"
+SECURITY_SUITE_HOME="$(dirname "$SCRIPT_DIR")"
+
+echo "Disabling optimized Garuda Security Suite components..."
+
+# Stop optimized services
+systemctl --user stop memory-monitor.service 2>/dev/null || true
+
+# Restore original components
+if [ -f "$SCRIPT_DIR/behavioral-monitor.sh.backup" ]; then
+    mv "$SCRIPT_DIR/behavioral-monitor.sh.backup" "$SCRIPT_DIR/behavioral-monitor.sh"
+fi
+
+if [ -f "$SCRIPT_DIR/behavioral-analysis.sh.backup" ]; then
+    mv "$SCRIPT_DIR/behavioral-analysis.sh.backup" "$SCRIPT_DIR/behavioral-analysis.sh"
+fi
+
+if [ -f "$SCRIPT_DIR/threat-intelligence.sh.backup" ]; then
+    mv "$SCRIPT_DIR/threat-intelligence.sh.backup" "$SCRIPT_DIR/threat-intelligence.sh"
+fi
+
+if [ -f "$SCRIPT_DIR/../web-dashboard/app.py.backup" ]; then
+    mv "$SCRIPT_DIR/../web-dashboard/app.py.backup" "$SCRIPT_DIR/../web-dashboard/app.py"
+fi
+
+# Restart original services
+systemctl --user daemon-reload
+systemctl --user start garuda-behavioral-monitor 2>/dev/null || true
+systemctl --user start garuda-dashboard 2>/dev/null || true
+
+echo "Optimized components disabled successfully"
+echo "Original components restored"

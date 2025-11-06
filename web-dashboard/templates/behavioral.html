@@ -1,0 +1,1278 @@
+{% extends "base.html" %}
+
+{% block title %}Behavioral Analysis - Garuda Security Suite{% endblock %}
+
+{% block page_title %}Behavioral Analysis{% endblock %}
+{% block page_subtitle %}Advanced anomaly detection and behavioral monitoring{% endblock %}
+
+{% block content %}
+<!-- Behavioral Analysis Overview -->
+<div class="behavioral-overview-section">
+    <div class="row">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="status-card primary fade-in">
+                <div class="status-icon primary">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <div class="status-content">
+                    <h3 class="status-title">Analysis Status</h3>
+                    <div class="status-value" id="analysis-status">
+                        <i class="fas fa-circle text-success pulse"></i> Active
+                    </div>
+                    <div class="status-change">
+                        <span class="change-positive">Monitoring</span> 24/7
+                    </div>
+                </div>
+                <div class="status-chart">
+                    <canvas id="analysisStatusChart" width="100" height="40"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="status-card success fade-in" style="animation-delay: 0.1s">
+                <div class="status-icon success">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="status-content">
+                    <h3 class="status-title">Baseline Accuracy</h3>
+                    <div class="status-value" id="baseline-accuracy">98.5%</div>
+                    <div class="status-change">
+                        <span class="change-positive">+2.3%</span> from last week
+                    </div>
+                </div>
+                <div class="status-chart">
+                    <canvas id="baselineChart" width="100" height="40"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="status-card warning fade-in" style="animation-delay: 0.2s">
+                <div class="status-icon warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="status-content">
+                    <h3 class="status-title">Anomalies Detected</h3>
+                    <div class="status-value" id="anomalies-count">0</div>
+                    <div class="status-change">
+                        <span class="change-neutral">0%</span> in last hour
+                    </div>
+                </div>
+                <div class="status-chart">
+                    <canvas id="anomaliesChart" width="100" height="40"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="status-card info fade-in" style="animation-delay: 0.3s">
+                <div class="status-icon info">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <div class="status-content">
+                    <h3 class="status-title">Threat Score</h3>
+                    <div class="status-value" id="threat-score">Low</div>
+                    <div class="status-change">
+                        <span class="change-positive">-5%</span> risk reduction
+                    </div>
+                </div>
+                <div class="status-chart">
+                    <canvas id="threatScoreChart" width="100" height="40"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Behavioral Metrics and Analysis -->
+<div class="behavioral-metrics-section">
+    <div class="row">
+        <!-- Behavioral Pattern Analysis -->
+        <div class="col-xl-8 col-lg-7 mb-4">
+            <div class="chart-container fade-in">
+                <div class="chart-header">
+                    <div class="chart-title-section">
+                        <h3 class="chart-title">Behavioral Pattern Analysis</h3>
+                        <p class="chart-subtitle">Real-time behavioral monitoring and anomaly detection</p>
+                    </div>
+                    <div class="chart-options">
+                        <button class="chart-option active" data-metric="patterns" onclick="updateBehavioralChart('patterns')">Patterns</button>
+                        <button class="chart-option" data-metric="anomalies" onclick="updateBehavioralChart('anomalies')">Anomalies</button>
+                        <button class="chart-option" data-metric="baseline" onclick="updateBehavioralChart('baseline')">Baseline</button>
+                    </div>
+                </div>
+                <div class="chart-body">
+                    <canvas id="behavioralPatternChart"></canvas>
+                </div>
+                <div class="chart-legend">
+                    <div class="legend-item">
+                        <div class="legend-color normal"></div>
+                        <span>Normal Behavior</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color suspicious"></div>
+                        <span>Suspicious Activity</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color anomalous"></div>
+                        <span>Anomalous Behavior</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Behavioral Risk Assessment -->
+        <div class="col-xl-4 col-lg-5 mb-4">
+            <div class="chart-container fade-in">
+                <div class="chart-header">
+                    <div class="chart-title-section">
+                        <h3 class="chart-title">Risk Assessment</h3>
+                        <p class="chart-subtitle">Current behavioral risk levels</p>
+                    </div>
+                </div>
+                <div class="chart-body">
+                    <canvas id="riskAssessmentChart"></canvas>
+                </div>
+                <div class="risk-stats">
+                    <div class="risk-stat">
+                        <div class="risk-indicator low"></div>
+                        <div class="risk-info">
+                            <span class="risk-label">Low Risk</span>
+                            <span class="risk-value" id="low-risk-count">85%</span>
+                        </div>
+                    </div>
+                    <div class="risk-stat">
+                        <div class="risk-indicator medium"></div>
+                        <div class="risk-info">
+                            <span class="risk-label">Medium Risk</span>
+                            <span class="risk-value" id="medium-risk-count">12%</span>
+                        </div>
+                    </div>
+                    <div class="risk-stat">
+                        <div class="risk-indicator high"></div>
+                        <div class="risk-info">
+                            <span class="risk-label">High Risk</span>
+                            <span class="risk-value" id="high-risk-count">3%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Anomalies Timeline -->
+<div class="anomalies-timeline-section">
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="card fade-in">
+                <div class="card-header">
+                    <h3 class="card-title">Recent Anomalies</h3>
+                    <div class="card-actions">
+                        <button class="btn btn-sm btn-outline" onclick="refreshAnomalies()">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline dropdown-toggle" data-bs-toggle="dropdown">
+                                <i class="fas fa-filter"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#" onclick="filterAnomalies('all')">All Anomalies</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="filterAnomalies('critical')">Critical Only</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="filterAnomalies('high')">High Priority</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="filterAnomalies('unresolved')">Unresolved</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="timeline" id="anomalies-timeline">
+                        <div class="timeline-item skeleton">
+                            <div class="timeline-marker">
+                                <div class="skeleton" style="width: 24px; height: 24px; border-radius: 50%;"></div>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-header">
+                                    <div class="skeleton" style="width: 150px; height: 16px;"></div>
+                                    <div class="skeleton" style="width: 80px; height: 14px;"></div>
+                                </div>
+                                <div class="timeline-body">
+                                    <div class="skeleton" style="width: 100%; height: 12px; margin-bottom: 4px;"></div>
+                                    <div class="skeleton" style="width: 85%; height: 12px;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-center mt-3">
+                        <button class="btn btn-outline" onclick="viewAllAnomalies()">
+                            View All Anomalies <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Behavioral Metrics -->
+        <div class="col-lg-6 mb-4">
+            <div class="card fade-in">
+                <div class="card-header">
+                    <h3 class="card-title">Behavioral Metrics</h3>
+                    <div class="metric-toggle">
+                        <button class="metric-btn active" data-metric="system">System</button>
+                        <button class="metric-btn" data-metric="network">Network</button>
+                        <button class="metric-btn" data-metric="user">User</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="metrics-content" id="system-metrics">
+                        <div class="metric-item">
+                            <div class="metric-header">
+                                <span class="metric-label">Process Behavior</span>
+                                <span class="metric-value" id="process-behavior">Normal</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar success" id="process-progress" style="width: 15%"></div>
+                            </div>
+                            <div class="metric-details">
+                                <span>Monitored: <span id="processes-monitored">247</span></span>
+                                <span>Anomalies: <span id="processes-anomalies">3</span></span>
+                            </div>
+                        </div>
+
+                        <div class="metric-item">
+                            <div class="metric-header">
+                                <span class="metric-label">File Access Patterns</span>
+                                <span class="metric-value" id="file-access">Baseline</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar info" id="file-progress" style="width: 8%"></div>
+                            </div>
+                            <div class="metric-details">
+                                <span>Access Events: <span id="file-events">1,247</span></span>
+                                <span>Deviations: <span id="file-deviations">12</span></span>
+                            </div>
+                        </div>
+
+                        <div class="metric-item">
+                            <div class="metric-header">
+                                <span class="metric-label">Network Behavior</span>
+                                <span class="metric-value" id="network-behavior">Stable</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar warning" id="network-progress" style="width: 22%"></div>
+                            </div>
+                            <div class="metric-details">
+                                <span>Connections: <span id="network-connections">89</span></span>
+                                <span>Anomalies: <span id="network-anomalies">5</span></span>
+                            </div>
+                        </div>
+
+                        <div class="metric-item">
+                            <div class="metric-header">
+                                <span class="metric-label">User Activity</span>
+                                <span class="metric-value" id="user-activity">Normal</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar primary" id="user-progress" style="width: 5%"></div>
+                            </div>
+                            <div class="metric-details">
+                                <span>Active Users: <span id="active-users">12</span></span>
+                                <span>Anomalies: <span id="user-anomalies">1</span></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="metrics-content" id="network-metrics" style="display: none;">
+                        <div class="metric-item">
+                            <div class="metric-header">
+                                <span class="metric-label">Traffic Volume</span>
+                                <span class="metric-value" id="traffic-volume">Normal</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar success" id="traffic-progress" style="width: 35%"></div>
+                            </div>
+                            <div class="metric-details">
+                                <span>Inbound: <span id="traffic-inbound">2.4 GB</span></span>
+                                <span>Outbound: <span id="traffic-outbound">1.8 GB</span></span>
+                            </div>
+                        </div>
+
+                        <div class="metric-item">
+                            <div class="metric-header">
+                                <span class="metric-label">Connection Patterns</span>
+                                <span class="metric-value" id="connection-patterns">Stable</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar info" id="connection-progress" style="width: 18%"></div>
+                            </div>
+                            <div class="metric-details">
+                                <span>Active: <span id="active-connections">89</span></span>
+                                <span>Failed: <span id="failed-connections">3</span></span>
+                            </div>
+                        </div>
+
+                        <div class="metric-item">
+                            <div class="metric-header">
+                                <span class="metric-label">Protocol Analysis</span>
+                                <span class="metric-value" id="protocol-analysis">Secure</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar warning" id="protocol-progress" style="width: 12%"></div>
+                            </div>
+                            <div class="metric-details">
+                                <span>HTTP/HTTPS: <span id="http-connections">45</span></span>
+                                <span>SSH: <span id="ssh-connections">8</span></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="metrics-content" id="user-metrics" style="display: none;">
+                        <div class="metric-item">
+                            <div class="metric-header">
+                                <span class="metric-label">Login Patterns</span>
+                                <span class="metric-value" id="login-patterns">Normal</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar success" id="login-progress" style="width: 8%"></div>
+                            </div>
+                            <div class="metric-details">
+                                <span>Successful: <span id="successful-logins">156</span></span>
+                                <span>Failed: <span id="failed-logins">4</span></span>
+                            </div>
+                        </div>
+
+                        <div class="metric-item">
+                            <div class="metric-header">
+                                <span class="metric-label">Access Patterns</span>
+                                <span class="metric-value" id="access-patterns">Baseline</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar info" id="access-progress" style="width: 15%"></div>
+                            </div>
+                            <div class="metric-details">
+                                <span>Files Accessed: <span id="files-accessed">1,847</span></span>
+                                <span>Deviations: <span id="access-deviations">23</span></span>
+                            </div>
+                        </div>
+
+                        <div class="metric-item">
+                            <div class="metric-header">
+                                <span class="metric-label">Privilege Usage</span>
+                                <span class="metric-value" id="privilege-usage">Secure</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar warning" id="privilege-progress" style="width: 5%"></div>
+                            </div>
+                            <div class="metric-details">
+                                <span>Elevated: <span id="elevated-privileges">2</span></span>
+                                <span>Normal: <span id="normal-privileges">10</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Behavioral Analysis Actions -->
+<div class="behavioral-actions-section">
+    <div class="card fade-in">
+        <div class="card-header">
+            <h3 class="card-title">Behavioral Analysis Actions</h3>
+            <p class="card-subtitle">Manage behavioral analysis and baseline operations</p>
+        </div>
+        <div class="card-body">
+            <div class="quick-actions-grid">
+                <button class="quick-action-btn" onclick="createBaseline()">
+                    <div class="action-icon success">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="action-content">
+                        <h4>Create Baseline</h4>
+                        <p>Establish new behavioral baseline</p>
+                    </div>
+                    <div class="action-arrow">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                </button>
+
+                <button class="quick-action-btn" onclick="updateBaseline()">
+                    <div class="action-icon info">
+                        <i class="fas fa-sync"></i>
+                    </div>
+                    <div class="action-content">
+                        <h4>Update Baseline</h4>
+                        <p>Refresh existing baseline data</p>
+                    </div>
+                    <div class="action-arrow">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                </button>
+
+                <button class="quick-action-btn" onclick="runAnalysis()">
+                    <div class="action-icon primary">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <div class="action-content">
+                        <h4>Run Analysis</h4>
+                        <p>Execute behavioral analysis</p>
+                    </div>
+                    <div class="action-arrow">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                </button>
+
+                <button class="quick-action-btn" onclick="exportAnalysis()">
+                    <div class="action-icon warning">
+                        <i class="fas fa-download"></i>
+                    </div>
+                    <div class="action-content">
+                        <h4>Export Analysis</h4>
+                        <p>Download analysis reports</p>
+                    </div>
+                    <div class="action-arrow">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                </button>
+
+                <button class="quick-action-btn" onclick="configureAnalysis()">
+                    <div class="action-icon secondary">
+                        <i class="fas fa-cog"></i>
+                    </div>
+                    <div class="action-content">
+                        <h4>Configure</h4>
+                        <p>Adjust analysis parameters</p>
+                    </div>
+                    <div class="action-arrow">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                </button>
+
+                <button class="quick-action-btn" onclick="viewReports()">
+                    <div class="action-icon danger">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <div class="action-content">
+                        <h4>View Reports</h4>
+                        <p>Access detailed reports</p>
+                    </div>
+                    <div class="action-arrow">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Behavioral Analysis Configuration -->
+<div class="behavioral-config-section">
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="card fade-in">
+                <div class="card-header">
+                    <h3 class="card-title">Analysis Configuration</h3>
+                </div>
+                <div class="card-body">
+                    <form id="behavioral-config-form">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Analysis Sensitivity</label>
+                                <select class="form-select" id="analysis-sensitivity">
+                                    <option value="low">Low</option>
+                                    <option value="medium" selected>Medium</option>
+                                    <option value="high">High</option>
+                                    <option value="critical">Critical</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Monitoring Scope</label>
+                                <select class="form-select" id="monitoring-scope">
+                                    <option value="full" selected>Full System</option>
+                                    <option value="processes">Processes Only</option>
+                                    <option value="network">Network Only</option>
+                                    <option value="files">File Access Only</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Baseline Period (days)</label>
+                                <input type="number" class="form-control" id="baseline-period" value="7" min="1" max="30">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Alert Threshold</label>
+                                <input type="number" class="form-control" id="alert-threshold" value="80" min="1" max="100">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12 mb-3">
+                                <label class="form-label">Analysis Features</label>
+                                <div class="feature-toggles">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="feature-process" checked>
+                                        <label class="form-check-label" for="feature-process">
+                                            Process Monitoring
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="feature-network" checked>
+                                        <label class="form-check-label" for="feature-network">
+                                            Network Analysis
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="feature-files" checked>
+                                        <label class="form-check-label" for="feature-files">
+                                            File Access Tracking
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="feature-users" checked>
+                                        <label class="form-check-label" for="feature-users">
+                                            User Behavior Analysis
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>Save Configuration
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary ms-2" onclick="resetConfig()">
+                                    <i class="fas fa-undo me-2"></i>Reset to Default
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card fade-in">
+                <div class="card-header">
+                    <h3 class="card-title">Analysis Schedule</h3>
+                </div>
+                <div class="card-body">
+                    <div class="schedule-info">
+                        <div class="schedule-item">
+                            <div class="schedule-icon">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="schedule-content">
+                                <h5>Real-time Monitoring</h5>
+                                <p>Continuous behavioral analysis is active</p>
+                                <div class="status-badge online">
+                                    <span class="status-indicator-dot"></span>
+                                    Active
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="schedule-item">
+                            <div class="schedule-icon">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <div class="schedule-content">
+                                <h5>Baseline Update</h5>
+                                <p>Next scheduled update: Tonight at 2:00 AM</p>
+                                <div class="status-badge warning">
+                                    <span class="status-indicator-dot"></span>
+                                    Scheduled
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="schedule-item">
+                            <div class="schedule-icon">
+                                <i class="fas fa-chart-bar"></i>
+                            </div>
+                            <div class="schedule-content">
+                                <h5>Report Generation</h5>
+                                <p>Daily reports at 6:00 AM</p>
+                                <div class="status-badge online">
+                                    <span class="status-indicator-dot"></span>
+                                    Active
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Behavioral Analysis specific JavaScript
+let behavioralPatternChart;
+let riskAssessmentChart;
+let miniCharts = {};
+
+// Initialize behavioral analysis page
+document.addEventListener('DOMContentLoaded', function() {
+    initializeBehavioralCharts();
+    loadBehavioralData();
+    initializeMetricToggle();
+    initializeConfigurationForm();
+});
+
+function initializeBehavioralCharts() {
+    // Behavioral Pattern Chart
+    const ctx1 = document.getElementById('behavioralPatternChart').getContext('2d');
+    behavioralPatternChart = new Chart(ctx1, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Normal Behavior',
+                data: [],
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                tension: 0.4,
+                fill: true
+            }, {
+                label: 'Suspicious Activity',
+                data: [],
+                borderColor: '#f97316',
+                backgroundColor: 'rgba(249, 115, 22, 0.1)',
+                tension: 0.4,
+                fill: true
+            }, {
+                label: 'Anomalous Behavior',
+                data: [],
+                borderColor: '#ef4444',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    titleColor: '#f1f5f9',
+                    bodyColor: '#cbd5e1',
+                    borderColor: '#334155',
+                    borderWidth: 1,
+                    padding: 12,
+                    displayColors: true
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        color: 'rgba(148, 163, 184, 0.1)',
+                        drawBorder: false
+                    },
+                    ticks: {
+                        color: '#94a3b8'
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(148, 163, 184, 0.1)',
+                        drawBorder: false
+                    },
+                    ticks: {
+                        color: '#94a3b8'
+                    }
+                }
+            }
+        }
+    });
+
+    // Risk Assessment Chart
+    const ctx2 = document.getElementById('riskAssessmentChart').getContext('2d');
+    riskAssessmentChart = new Chart(ctx2, {
+        type: 'radar',
+        data: {
+            labels: ['Process Behavior', 'File Access', 'Network Activity', 'User Patterns', 'System Resources', 'Privilege Usage'],
+            datasets: [{
+                label: 'Current Risk Level',
+                data: [15, 8, 22, 5, 12, 3],
+                borderColor: '#1a73e8',
+                backgroundColor: 'rgba(26, 115, 232, 0.2)',
+                pointBackgroundColor: '#1a73e8',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: '#1a73e8'
+            }, {
+                label: 'Baseline Risk Level',
+                data: [10, 5, 15, 3, 8, 2],
+                borderColor: '#8b5cf6',
+                backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                pointBackgroundColor: '#8b5cf6',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: '#8b5cf6'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: '#cbd5e1',
+                        padding: 20
+                    }
+                }
+            },
+            scales: {
+                r: {
+                    angleLines: {
+                        color: 'rgba(148, 163, 184, 0.1)'
+                    },
+                    grid: {
+                        color: 'rgba(148, 163, 184, 0.1)'
+                    },
+                    pointLabels: {
+                        color: '#94a3b8',
+                        font: {
+                            size: 11
+                        }
+                    },
+                    ticks: {
+                        color: '#94a3b8',
+                        backdropColor: 'transparent'
+                    }
+                }
+            }
+        }
+    });
+
+    // Initialize mini charts
+    initializeMiniCharts();
+}
+
+function loadBehavioralData() {
+    // Load behavioral analysis data
+    fetch('/api/behavioral/metrics')
+        .then(response => response.json())
+        .then(data => {
+            updateBehavioralMetrics(data);
+            updateAnomaliesTimeline(data.anomalies);
+            removeSkeletons();
+        })
+        .catch(error => {
+            console.error('Error loading behavioral data:', error);
+            showErrorMessage('Failed to load behavioral analysis data');
+        });
+}
+
+function updateBehavioralMetrics(data) {
+    // Update status cards
+    document.getElementById('baseline-accuracy').textContent = data.baseline_accuracy + '%';
+    document.getElementById('anomalies-count').textContent = data.anomaly_count || 0;
+    
+    // Update metrics
+    updateBehavioralMetricValues(data);
+    
+    // Update charts
+    updateBehavioralCharts(data);
+}
+
+function updateAnomaliesTimeline(anomalies) {
+    const timeline = document.getElementById('anomalies-timeline');
+    timeline.innerHTML = '';
+    
+    if (anomalies.length === 0) {
+        timeline.innerHTML = `
+            <div class="timeline-item">
+                <div class="timeline-marker">
+                    <i class="fas fa-check-circle text-success"></i>
+                </div>
+                <div class="timeline-content">
+                    <div class="timeline-header">
+                        <span class="timeline-title">No Anomalies Detected</span>
+                        <span class="timeline-time">Now</span>
+                    </div>
+                    <div class="timeline-body">
+                        <p>System behavior is within normal parameters.</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    anomalies.slice(0, 5).forEach(anomaly => {
+        const severityClass = getSeverityClass(anomaly.severity);
+        const timelineItem = document.createElement('div');
+        timelineItem.className = 'timeline-item fade-in';
+        timelineItem.innerHTML = `
+            <div class="timeline-marker">
+                <i class="fas fa-exclamation-triangle ${severityClass}"></i>
+            </div>
+            <div class="timeline-content">
+                <div class="timeline-header">
+                    <span class="timeline-title">${anomaly.anomaly_type}</span>
+                    <span class="timeline-time">${formatTime(anomaly.timestamp)}</span>
+                </div>
+                <div class="timeline-body">
+                    <p><strong>${anomaly.metric_name}</strong> - ${anomaly.severity} severity</p>
+                    ${anomaly.description ? `<p>${anomaly.description}</p>` : ''}
+                </div>
+            </div>
+        `;
+        timeline.appendChild(timelineItem);
+    });
+}
+
+function updateBehavioralChart(metric) {
+    document.querySelectorAll('.chart-option').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector(`[data-metric="${metric}"]`).classList.add('active');
+    
+    // Update chart based on selected metric
+    loadBehavioralChartData(metric);
+}
+
+function loadBehavioralChartData(metric) {
+    // Load chart data for specific metric
+    fetch(`/api/behavioral/chart-data?metric=${metric}`)
+        .then(response => response.json())
+        .then(data => {
+            updateBehavioralPatternChart(data);
+        })
+        .catch(error => {
+            console.error('Error loading chart data:', error);
+        });
+}
+
+function createBaseline() {
+    showStatusMessage('Creating behavioral baseline...', 'info');
+    
+    fetch('/api/behavioral/baseline', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': getCSRFToken()
+        },
+        body: JSON.stringify({ 
+            days: document.getElementById('baseline-period').value,
+            scope: document.getElementById('monitoring-scope').value
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showStatusMessage(data.message, 'success');
+        } else {
+            showErrorMessage(data.message || 'Failed to create baseline');
+        }
+    })
+    .catch(error => {
+        console.error('Error creating baseline:', error);
+        showErrorMessage('Failed to create behavioral baseline');
+    });
+}
+
+function updateBaseline() {
+    showStatusMessage('Updating behavioral baseline...', 'info');
+    
+    fetch('/api/behavioral/update-baseline', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': getCSRFToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showStatusMessage(data.message, 'success');
+        } else {
+            showErrorMessage(data.message || 'Failed to update baseline');
+        }
+    })
+    .catch(error => {
+        console.error('Error updating baseline:', error);
+        showErrorMessage('Failed to update behavioral baseline');
+    });
+}
+
+function runAnalysis() {
+    showStatusMessage('Running behavioral analysis...', 'info');
+    
+    fetch('/api/behavioral/analyze', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': getCSRFToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showStatusMessage(data.message, 'success');
+            loadBehavioralData(); // Reload data
+        } else {
+            showErrorMessage(data.message || 'Failed to run analysis');
+        }
+    })
+    .catch(error => {
+        console.error('Error running analysis:', error);
+        showErrorMessage('Failed to run behavioral analysis');
+    });
+}
+
+function exportAnalysis() {
+    showStatusMessage('Exporting behavioral analysis...', 'info');
+    
+    fetch('/api/behavioral/export')
+        .then(response => response.blob())
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `behavioral_analysis_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            showStatusMessage('Analysis exported successfully', 'success');
+        })
+        .catch(error => {
+            console.error('Error exporting analysis:', error);
+            showErrorMessage('Failed to export behavioral analysis');
+        });
+}
+
+function configureAnalysis() {
+    // Show configuration modal or navigate to config page
+    window.location.href = '/config#behavioral';
+}
+
+function viewReports() {
+    window.location.href = '/reports?section=behavioral';
+}
+
+function refreshAnomalies() {
+    loadBehavioralData();
+    showStatusMessage('Anomalies refreshed', 'success');
+}
+
+function filterAnomalies(filter) {
+    console.log('Filtering anomalies:', filter);
+    // Implement anomaly filtering logic
+}
+
+function viewAllAnomalies() {
+    window.location.href = '/behavioral?view=anomalies';
+}
+
+function initializeConfigurationForm() {
+    const form = document.getElementById('behavioral-config-form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            saveConfiguration();
+        });
+    }
+}
+
+function saveConfiguration() {
+    const config = {
+        sensitivity: document.getElementById('analysis-sensitivity').value,
+        scope: document.getElementById('monitoring-scope').value,
+        baseline_period: document.getElementById('baseline-period').value,
+        alert_threshold: document.getElementById('alert-threshold').value,
+        features: {
+            process: document.getElementById('feature-process').checked,
+            network: document.getElementById('feature-network').checked,
+            files: document.getElementById('feature-files').checked,
+            users: document.getElementById('feature-users').checked
+        }
+    };
+    
+    fetch('/api/behavioral/config', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': getCSRFToken()
+        },
+        body: JSON.stringify(config)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showStatusMessage('Configuration saved successfully', 'success');
+        } else {
+            showErrorMessage(data.message || 'Failed to save configuration');
+        }
+    })
+    .catch(error => {
+        console.error('Error saving configuration:', error);
+        showErrorMessage('Failed to save behavioral configuration');
+    });
+}
+
+function resetConfig() {
+    if (confirm('Are you sure you want to reset the configuration to default values?')) {
+        fetch('/api/behavioral/reset-config', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-Token': getCSRFToken()
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showStatusMessage('Configuration reset to defaults', 'success');
+                // Reset form values
+                document.getElementById('analysis-sensitivity').value = 'medium';
+                document.getElementById('monitoring-scope').value = 'full';
+                document.getElementById('baseline-period').value = '7';
+                document.getElementById('alert-threshold').value = '80';
+                document.getElementById('feature-process').checked = true;
+                document.getElementById('feature-network').checked = true;
+                document.getElementById('feature-files').checked = true;
+                document.getElementById('feature-users').checked = true;
+            } else {
+                showErrorMessage(data.message || 'Failed to reset configuration');
+            }
+        })
+        .catch(error => {
+            console.error('Error resetting configuration:', error);
+            showErrorMessage('Failed to reset behavioral configuration');
+        });
+    }
+}
+
+function updateBehavioralMetricValues(data) {
+    // Update system metrics
+    document.getElementById('process-behavior').textContent = data.process_behavior || 'Normal';
+    document.getElementById('file-access').textContent = data.file_access || 'Baseline';
+    document.getElementById('network-behavior').textContent = data.network_behavior || 'Stable';
+    document.getElementById('user-activity').textContent = data.user_activity || 'Normal';
+    
+    // Update progress bars
+    updateProgressBar('process-progress', data.process_anomaly_rate || 15);
+    updateProgressBar('file-progress', data.file_anomaly_rate || 8);
+    updateProgressBar('network-progress', data.network_anomaly_rate || 22);
+    updateProgressBar('user-progress', data.user_anomaly_rate || 5);
+    
+    // Update detailed metrics
+    document.getElementById('processes-monitored').textContent = data.processes_monitored || 247;
+    document.getElementById('processes-anomalies').textContent = data.processes_anomalies || 3;
+    document.getElementById('file-events').textContent = data.file_events || 1247;
+    document.getElementById('file-deviations').textContent = data.file_deviations || 12;
+    document.getElementById('network-connections').textContent = data.network_connections || 89;
+    document.getElementById('network-anomalies').textContent = data.network_anomalies || 5;
+    document.getElementById('active-users').textContent = data.active_users || 12;
+    document.getElementById('user-anomalies').textContent = data.user_anomalies || 1;
+}
+
+function updateBehavioralCharts(data) {
+    const timestamp = new Date().toLocaleTimeString();
+    
+    // Update behavioral pattern chart
+    if (behavioralPatternChart && data.patterns) {
+        if (behavioralPatternChart.data.labels.length > 20) {
+            behavioralPatternChart.data.labels.shift();
+            behavioralPatternChart.data.datasets.forEach(dataset => dataset.data.shift());
+        }
+        
+        behavioralPatternChart.data.labels.push(timestamp);
+        behavioralPatternChart.data.datasets[0].data.push(data.patterns.normal || 0);
+        behavioralPatternChart.data.datasets[1].data.push(data.patterns.suspicious || 0);
+        behavioralPatternChart.data.datasets[2].data.push(data.patterns.anomalous || 0);
+        behavioralPatternChart.update('none');
+    }
+    
+    // Update risk assessment chart
+    if (riskAssessmentChart && data.risk_levels) {
+        riskAssessmentChart.data.datasets[0].data = [
+            data.risk_levels.process_behavior || 15,
+            data.risk_levels.file_access || 8,
+            data.risk_levels.network_activity || 22,
+            data.risk_levels.user_patterns || 5,
+            data.risk_levels.system_resources || 12,
+            data.risk_levels.privilege_usage || 3
+        ];
+        riskAssessmentChart.update('none');
+    }
+}
+
+function initializeMiniCharts() {
+    // Initialize mini charts for status cards
+    // Similar to dashboard mini charts implementation
+}
+
+function removeSkeletons() {
+    document.querySelectorAll('.skeleton').forEach(element => {
+        element.classList.remove('skeleton');
+    });
+}
+
+function getSeverityClass(severity) {
+    switch (severity.toLowerCase()) {
+        case 'critical': return 'text-danger';
+        case 'high': return 'text-warning';
+        case 'medium': return 'text-info';
+        case 'low': return 'text-success';
+        default: return 'text-secondary';
+    }
+}
+
+// Export functions for global access
+window.createBaseline = createBaseline;
+window.updateBaseline = updateBaseline;
+window.runAnalysis = runAnalysis;
+window.exportAnalysis = exportAnalysis;
+window.configureAnalysis = configureAnalysis;
+window.viewReports = viewReports;
+window.refreshAnomalies = refreshAnomalies;
+window.filterAnomalies = filterAnomalies;
+window.viewAllAnomalies = viewAllAnomalies;
+window.updateBehavioralChart = updateBehavioralChart;
+</script>
+
+<style>
+/* Behavioral Analysis specific styles */
+.legend-color.normal { background: #10b981; }
+.legend-color.suspicious { background: #f97316; }
+.legend-color.anomalous { background: #ef4444; }
+
+.risk-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: var(--radius-full);
+}
+
+.risk-indicator.low { background: var(--success-color); }
+.risk-indicator.medium { background: var(--warning-color); }
+.risk-indicator.high { background: var(--danger-color); }
+
+.risk-info {
+    display: flex;
+    justify-content: space-between;
+    flex: 1;
+    font-size: 0.875rem;
+}
+
+.risk-label { color: var(--gray-300); }
+.risk-value { font-weight: 600; color: var(--gray-100); }
+
+.feature-toggles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-md);
+}
+
+.form-check {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: var(--radius-md);
+    transition: var(--transition-normal);
+}
+
+.form-check:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.form-check-input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary-color);
+}
+
+.form-check-label {
+    color: var(--gray-300);
+    font-weight: 500;
+    cursor: pointer;
+    margin-bottom: 0;
+}
+
+.schedule-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+.schedule-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-lg);
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: var(--radius-lg);
+    transition: var(--transition-normal);
+}
+
+.schedule-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.schedule-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: var(--radius-lg);
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.25rem;
+}
+
+.schedule-content {
+    flex: 1;
+}
+
+.schedule-content h5 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--gray-100);
+    margin-bottom: var(--spacing-xs);
+}
+
+.schedule-content p {
+    color: var(--gray-400);
+    margin-bottom: var(--spacing-sm);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .feature-toggles {
+        grid-template-columns: 1fr;
+    }
+    
+    .schedule-item {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .schedule-icon {
+        margin-bottom: var(--spacing-md);
+    }
+}
+</style>
+{% endblock %}

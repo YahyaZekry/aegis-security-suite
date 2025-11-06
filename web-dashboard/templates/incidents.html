@@ -1,0 +1,1384 @@
+{% extends "base.html" %}
+
+{% block title %}Incident Management - Garuda Security Suite{% endblock %}
+
+{% block page_title %}Incident Management{% endblock %}
+{% block page_subtitle %}Advanced incident tracking and response management{% endblock %}
+
+{% block content %}
+<!-- Incident Management Overview -->
+<div class="incident-overview-section">
+    <div class="row">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="status-card primary fade-in">
+                <div class="status-icon primary">
+                    <i class="fas fa-ambulance"></i>
+                </div>
+                <div class="status-content">
+                    <h3 class="status-title">Active Incidents</h3>
+                    <div class="status-value" id="active-incidents">0</div>
+                    <div class="status-change">
+                        <span class="change-negative">+2</span> new today
+                    </div>
+                </div>
+                <div class="status-chart">
+                    <canvas id="activeIncidentsChart" width="100" height="40"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="status-card success fade-in" style="animation-delay: 0.1s">
+                <div class="status-icon success">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="status-content">
+                    <h3 class="status-title">Resolved Today</h3>
+                    <div class="status-value" id="resolved-today">0</div>
+                    <div class="status-change">
+                        <span class="change-positive">+5</span> from yesterday
+                    </div>
+                </div>
+                <div class="status-chart">
+                    <canvas id="resolvedChart" width="100" height="40"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="status-card warning fade-in" style="animation-delay: 0.2s">
+                <div class="status-icon warning">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="status-content">
+                    <h3 class="status-title">Avg Resolution Time</h3>
+                    <div class="status-value" id="avg-resolution">2.5h</div>
+                    <div class="status-change">
+                        <span class="change-positive">-30m</span> improvement
+                    </div>
+                </div>
+                <div class="status-chart">
+                    <canvas id="resolutionTimeChart" width="100" height="40"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="status-card info fade-in" style="animation-delay: 0.3s">
+                <div class="status-icon info">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="status-content">
+                    <h3 class="status-title">Response Team</h3>
+                    <div class="status-value" id="response-team">Online</div>
+                    <div class="status-change">
+                        <span class="change-positive">8</span> members active
+                    </div>
+                </div>
+                <div class="status-chart">
+                    <canvas id="teamChart" width="100" height="40"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Incident Analytics and Visualization -->
+<div class="incident-analytics-section">
+    <div class="row">
+        <!-- Incident Trends Chart -->
+        <div class="col-xl-8 col-lg-7 mb-4">
+            <div class="chart-container fade-in">
+                <div class="chart-header">
+                    <div class="chart-title-section">
+                        <h3 class="chart-title">Incident Trends Analysis</h3>
+                        <p class="chart-subtitle">Incident volume and resolution patterns over time</p>
+                    </div>
+                    <div class="chart-options">
+                        <button class="chart-option active" data-range="7d" onclick="updateIncidentChart('7d')">7D</button>
+                        <button class="chart-option" data-range="30d" onclick="updateIncidentChart('30d')">30D</button>
+                        <button class="chart-option" data-range="90d" onclick="updateIncidentChart('90d')">90D</button>
+                    </div>
+                </div>
+                <div class="chart-body">
+                    <canvas id="incidentTrendsChart"></canvas>
+                </div>
+                <div class="chart-legend">
+                    <div class="legend-item">
+                        <div class="legend-color created"></div>
+                        <span>Created</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color resolved"></div>
+                        <span>Resolved</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color escalated"></div>
+                        <span>Escalated</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Incident Severity Distribution -->
+        <div class="col-xl-4 col-lg-5 mb-4">
+            <div class="chart-container fade-in">
+                <div class="chart-header">
+                    <div class="chart-title-section">
+                        <h3 class="chart-title">Severity Distribution</h3>
+                        <p class="chart-subtitle">Current incident severity levels</p>
+                    </div>
+                </div>
+                <div class="chart-body">
+                    <canvas id="severityDistributionChart"></canvas>
+                </div>
+                <div class="severity-stats">
+                    <div class="severity-stat">
+                        <div class="severity-indicator critical"></div>
+                        <div class="severity-info">
+                            <span class="severity-label">Critical</span>
+                            <span class="severity-value" id="critical-severity">0</span>
+                        </div>
+                    </div>
+                    <div class="severity-stat">
+                        <div class="severity-indicator high"></div>
+                        <div class="severity-info">
+                            <span class="severity-label">High</span>
+                            <span class="severity-value" id="high-severity">0</span>
+                        </div>
+                    </div>
+                    <div class="severity-stat">
+                        <div class="severity-indicator medium"></div>
+                        <div class="severity-info">
+                            <span class="severity-label">Medium</span>
+                            <span class="severity-value" id="medium-severity">0</span>
+                        </div>
+                    </div>
+                    <div class="severity-stat">
+                        <div class="severity-indicator low"></div>
+                        <div class="severity-info">
+                            <span class="severity-label">Low</span>
+                            <span class="severity-value" id="low-severity">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Active Incidents Management -->
+<div class="incidents-management-section">
+    <div class="row">
+        <!-- Active Incidents List -->
+        <div class="col-lg-8 mb-4">
+            <div class="card fade-in">
+                <div class="card-header">
+                    <h3 class="card-title">Active Incidents</h3>
+                    <div class="card-actions">
+                        <button class="btn btn-sm btn-outline" onclick="refreshIncidents()">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline dropdown-toggle" data-bs-toggle="dropdown">
+                                <i class="fas fa-filter"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#" onclick="filterIncidents('all')">All Incidents</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="filterIncidents('active')">Active Only</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="filterIncidents('unassigned')">Unassigned</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="filterIncidents('critical')">Critical Only</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="filterIncidents('escalated')">Escalated</a></li>
+                            </ul>
+                        </div>
+                        <button class="btn btn-sm btn-primary" onclick="createIncident()">
+                            <i class="fas fa-plus"></i> New Incident
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="incidents-table-container">
+                        <div class="table-responsive">
+                            <table class="table data-table" id="incidents-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Title</th>
+                                        <th>Severity</th>
+                                        <th>Status</th>
+                                        <th>Assigned To</th>
+                                        <th>Created</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="incidents-tbody">
+                                    <tr>
+                                        <td colspan="8" class="text-center">
+                                            <div class="loading-spinner"></div>
+                                            <p>Loading incidents...</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="pagination-container">
+                        <div class="pagination-info">
+                            Showing <span id="showing-count">0</span> of <span id="total-count">0</span> incidents
+                        </div>
+                        <div class="pagination-controls">
+                            <button class="pagination-btn" onclick="previousPage()" id="prev-btn">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <button class="pagination-btn active" onclick="goToPage(1)">1</button>
+                            <button class="pagination-btn" onclick="goToPage(2)">2</button>
+                            <button class="pagination-btn" onclick="goToPage(3)">3</button>
+                            <button class="pagination-btn" onclick="nextPage()" id="next-btn">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Incident Response Team -->
+        <div class="col-lg-4 mb-4">
+            <div class="card fade-in">
+                <div class="card-header">
+                    <h3 class="card-title">Response Team</h3>
+                    <div class="card-actions">
+                        <button class="btn btn-sm btn-outline" onclick="refreshTeamStatus()">
+                            <i class="fas fa-sync"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="team-status-grid">
+                        <div class="team-member">
+                            <div class="member-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="member-info">
+                                <h5>John Smith</h5>
+                                <p>Lead Analyst</p>
+                                <div class="member-status online">
+                                    <span class="status-indicator-dot"></span>
+                                    Available
+                                </div>
+                            </div>
+                            <div class="member-actions">
+                                <button class="btn btn-sm btn-outline" onclick="assignIncident('john')">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="team-member">
+                            <div class="member-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="member-info">
+                                <h5>Sarah Johnson</h5>
+                                <p>Security Analyst</p>
+                                <div class="member-status busy">
+                                    <span class="status-indicator-dot"></span>
+                                    Busy
+                                </div>
+                            </div>
+                            <div class="member-actions">
+                                <button class="btn btn-sm btn-outline" onclick="assignIncident('sarah')">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="team-member">
+                            <div class="member-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="member-info">
+                                <h5>Mike Chen</h5>
+                                <p>Incident Responder</p>
+                                <div class="member-status offline">
+                                    <span class="status-indicator-dot"></span>
+                                    Offline
+                                </div>
+                            </div>
+                            <div class="member-actions">
+                                <button class="btn btn-sm btn-outline" onclick="assignIncident('mike')">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="team-member">
+                            <div class="member-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="member-info">
+                                <h5>Lisa Wang</h5>
+                                <p>Threat Hunter</p>
+                                <div class="member-status online">
+                                    <span class="status-indicator-dot"></span>
+                                    Available
+                                </div>
+                            </div>
+                            <div class="member-actions">
+                                <button class="btn btn-sm btn-outline" onclick="assignIncident('lisa')">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Incident Actions and Workflow -->
+<div class="incident-actions-section">
+    <div class="card fade-in">
+        <div class="card-header">
+            <h3 class="card-title">Incident Management Actions</h3>
+            <p class="card-subtitle">Quick actions for incident response and management</p>
+        </div>
+        <div class="card-body">
+            <div class="quick-actions-grid">
+                <button class="quick-action-btn" onclick="createIncident()">
+                    <div class="action-icon primary">
+                        <i class="fas fa-plus"></i>
+                    </div>
+                    <div class="action-content">
+                        <h4>Create Incident</h4>
+                        <p>Report new security incident</p>
+                    </div>
+                    <div class="action-arrow">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                </button>
+
+                <button class="quick-action-btn" onclick="bulkAssign()">
+                    <div class="action-icon success">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="action-content">
+                        <h4>Bulk Assign</h4>
+                        <p>Assign multiple incidents</p>
+                    </div>
+                    <div class="action-arrow">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                </button>
+
+                <button class="quick-action-btn" onclick="escalateIncidents()">
+                    <div class="action-icon warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="action-content">
+                        <h4>Escalate</h4>
+                        <p>Escalate critical incidents</p>
+                    </div>
+                    <div class="action-arrow">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                </button>
+
+                <button class="quick-action-btn" onclick="generateReport()">
+                    <div class="action-icon info">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <div class="action-content">
+                        <h4>Generate Report</h4>
+                        <p>Create incident report</p>
+                    </div>
+                    <div class="action-arrow">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                </button>
+
+                <button class="quick-action-btn" onclick="exportIncidents()">
+                    <div class="action-icon secondary">
+                        <i class="fas fa-download"></i>
+                    </div>
+                    <div class="action-content">
+                        <h4>Export Data</h4>
+                        <p>Export incident data</p>
+                    </div>
+                    <div class="action-arrow">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                </button>
+
+                <button class="quick-action-btn" onclick="automateResponse()">
+                    <div class="action-icon danger">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="action-content">
+                        <h4>Auto Response</h4>
+                        <p>Trigger automated response</p>
+                    </div>
+                    <div class="action-arrow">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Incident Creation Modal -->
+<div class="modal fade" id="createIncidentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content glass-effect">
+            <div class="modal-header">
+                <h5 class="modal-title">Create New Incident</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="create-incident-form">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Incident Title</label>
+                            <input type="text" class="form-control" id="incident-title" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Severity</label>
+                            <select class="form-select" id="incident-severity" required>
+                                <option value="">Select Severity</option>
+                                <option value="critical">Critical</option>
+                                <option value="high">High</option>
+                                <option value="medium">Medium</option>
+                                <option value="low">Low</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Incident Type</label>
+                            <select class="form-select" id="incident-type" required>
+                                <option value="">Select Type</option>
+                                <option value="malware">Malware Detection</option>
+                                <option value="phishing">Phishing Attack</option>
+                                <option value="ddos">DDoS Attack</option>
+                                <option value="data_breach">Data Breach</option>
+                                <option value="unauthorized">Unauthorized Access</option>
+                                <option value="policy_violation">Policy Violation</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Assigned To</label>
+                            <select class="form-select" id="incident-assignee">
+                                <option value="">Unassigned</option>
+                                <option value="john">John Smith</option>
+                                <option value="sarah">Sarah Johnson</option>
+                                <option value="mike">Mike Chen</option>
+                                <option value="lisa">Lisa Wang</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" id="incident-description" rows="4" required></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Affected Systems</label>
+                            <input type="text" class="form-control" id="affected-systems" placeholder="e.g., web-server-01, database-02">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Impact Assessment</label>
+                            <select class="form-select" id="impact-assessment">
+                                <option value="">Select Impact</option>
+                                <option value="none">No Impact</option>
+                                <option value="low">Low Impact</option>
+                                <option value="medium">Medium Impact</option>
+                                <option value="high">High Impact</option>
+                                <option value="critical">Critical Impact</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitIncident()">Create Incident</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Incident Management specific JavaScript
+let incidentTrendsChart;
+let severityDistributionChart;
+let miniCharts = {};
+let currentPage = 1;
+let incidentsPerPage = 10;
+let totalIncidents = 0;
+
+// Initialize incident management page
+document.addEventListener('DOMContentLoaded', function() {
+    initializeIncidentCharts();
+    loadIncidentData();
+    initializeIncidentForm();
+});
+
+function initializeIncidentCharts() {
+    // Incident Trends Chart
+    const ctx1 = document.getElementById('incidentTrendsChart').getContext('2d');
+    incidentTrendsChart = new Chart(ctx1, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Created',
+                data: [],
+                borderColor: '#1a73e8',
+                backgroundColor: 'rgba(26, 115, 232, 0.1)',
+                tension: 0.4,
+                fill: true
+            }, {
+                label: 'Resolved',
+                data: [],
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                tension: 0.4,
+                fill: true
+            }, {
+                label: 'Escalated',
+                data: [],
+                borderColor: '#f97316',
+                backgroundColor: 'rgba(249, 115, 22, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    titleColor: '#f1f5f9',
+                    bodyColor: '#cbd5e1',
+                    borderColor: '#334155',
+                    borderWidth: 1,
+                    padding: 12,
+                    displayColors: true
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        color: 'rgba(148, 163, 184, 0.1)',
+                        drawBorder: false
+                    },
+                    ticks: {
+                        color: '#94a3b8'
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(148, 163, 184, 0.1)',
+                        drawBorder: false
+                    },
+                    ticks: {
+                        color: '#94a3b8'
+                    }
+                }
+            }
+        }
+    });
+
+    // Severity Distribution Chart
+    const ctx2 = document.getElementById('severityDistributionChart').getContext('2d');
+    severityDistributionChart = new Chart(ctx2, {
+        type: 'doughnut',
+        data: {
+            labels: ['Critical', 'High', 'Medium', 'Low'],
+            datasets: [{
+                data: [5, 15, 35, 45],
+                backgroundColor: [
+                    '#ef4444',
+                    '#f97316',
+                    '#eab308',
+                    '#10b981'
+                ],
+                borderWidth: 0,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    titleColor: '#f1f5f9',
+                    bodyColor: '#cbd5e1',
+                    borderColor: '#334155',
+                    borderWidth: 1,
+                    padding: 12,
+                    callbacks: {
+                        label: function(context) {
+                            return context.label + ': ' + context.parsed + '%';
+                        }
+                    }
+                }
+            },
+            cutout: '70%'
+        }
+    });
+
+    // Initialize mini charts
+    initializeMiniCharts();
+}
+
+function loadIncidentData() {
+    // Load incident management data
+    fetch('/api/incidents')
+        .then(response => response.json())
+        .then(data => {
+            updateIncidentMetrics(data);
+            updateIncidentsTable(data.incidents);
+            updateTeamStatus(data.team_status);
+            removeSkeletons();
+        })
+        .catch(error => {
+            console.error('Error loading incident data:', error);
+            showErrorMessage('Failed to load incident data');
+        });
+}
+
+function updateIncidentMetrics(data) {
+    // Update status cards
+    document.getElementById('active-incidents').textContent = data.active_incidents || 0;
+    document.getElementById('resolved-today').textContent = data.resolved_today || 0;
+    document.getElementById('avg-resolution').textContent = data.avg_resolution_time || '2.5h';
+    
+    // Update severity counts
+    document.getElementById('critical-severity').textContent = data.severity_counts?.critical || 0;
+    document.getElementById('high-severity').textContent = data.severity_counts?.high || 0;
+    document.getElementById('medium-severity').textContent = data.severity_counts?.medium || 0;
+    document.getElementById('low-severity').textContent = data.severity_counts?.low || 0;
+    
+    // Update charts
+    updateIncidentCharts(data);
+}
+
+function updateIncidentsTable(incidents) {
+    const tbody = document.getElementById('incidents-tbody');
+    tbody.innerHTML = '';
+    
+    if (incidents.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="text-center">
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <i class="fas fa-ambulance"></i>
+                        </div>
+                        <h5>No Active Incidents</h5>
+                        <p>No incidents are currently active in the system.</p>
+                    </div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    incidents.forEach(incident => {
+        const row = document.createElement('tr');
+        row.className = 'fade-in';
+        row.innerHTML = `
+            <td>
+                <a href="#" onclick="viewIncident('${incident.incident_id}')" class="incident-link">
+                    ${incident.incident_id}
+                </a>
+            </td>
+            <td>
+                <div class="incident-title">${incident.title}</div>
+                <div class="incident-meta">
+                    <span class="incident-type">${incident.incident_type}</span>
+                    <span class="incident-time">${formatTime(incident.created_at)}</span>
+                </div>
+            </td>
+            <td>
+                <span class="badge ${getSeverityBadgeClass(incident.severity)}">
+                    ${incident.severity}
+                </span>
+            </td>
+            <td>
+                <span class="status-badge ${getStatusBadgeClass(incident.status)}">
+                    <span class="status-indicator-dot"></span>
+                    ${incident.status}
+                </span>
+            </td>
+            <td>
+                <div class="assignee-info">
+                    ${incident.assignee ? `
+                        <div class="assignee-avatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <span>${incident.assignee}</span>
+                    ` : '<span class="text-muted">Unassigned</span>'}
+                </div>
+            </td>
+            <td>${formatTime(incident.created_at)}</td>
+            <td>
+                <div class="incident-actions">
+                    <button class="btn btn-sm btn-outline" onclick="viewIncident('${incident.incident_id}')" title="View">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline" onclick="editIncident('${incident.incident_id}')" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline" onclick="assignIncident('${incident.incident_id}')" title="Assign">
+                        <i class="fas fa-user-plus"></i>
+                    </button>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+    
+    // Update pagination
+    totalIncidents = incidents.length;
+    updatePagination();
+}
+
+function updateTeamStatus(teamStatus) {
+    const teamGrid = document.querySelector('.team-status-grid');
+    if (!teamGrid || !teamStatus) return;
+    
+    teamGrid.innerHTML = '';
+    teamStatus.forEach(member => {
+        const statusClass = member.status === 'online' ? 'online' : member.status === 'busy' ? 'busy' : 'offline';
+        const memberElement = document.createElement('div');
+        memberElement.className = 'team-member fade-in';
+        memberElement.innerHTML = `
+            <div class="member-avatar">
+                <i class="fas fa-user"></i>
+            </div>
+            <div class="member-info">
+                <h5>${member.name}</h5>
+                <p>${member.role}</p>
+                <div class="member-status ${statusClass}">
+                    <span class="status-indicator-dot"></span>
+                    ${member.status.charAt(0).toUpperCase() + member.status.slice(1)}
+                </div>
+            </div>
+            <div class="member-actions">
+                <button class="btn btn-sm btn-outline" onclick="assignIncident('${member.id}')">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+        `;
+        teamGrid.appendChild(memberElement);
+    });
+}
+
+function updateIncidentCharts(data) {
+    const timestamp = new Date().toLocaleTimeString();
+    
+    // Update incident trends chart
+    if (incidentTrendsChart && data.trends) {
+        if (incidentTrendsChart.data.labels.length > 20) {
+            incidentTrendsChart.data.labels.shift();
+            incidentTrendsChart.data.datasets.forEach(dataset => dataset.data.shift());
+        }
+        
+        incidentTrendsChart.data.labels.push(timestamp);
+        incidentTrendsChart.data.datasets[0].data.push(data.trends.created || 0);
+        incidentTrendsChart.data.datasets[1].data.push(data.trends.resolved || 0);
+        incidentTrendsChart.data.datasets[2].data.push(data.trends.escalated || 0);
+        incidentTrendsChart.update('none');
+    }
+    
+    // Update severity distribution chart
+    if (severityDistributionChart && data.severity_counts) {
+        const total = Object.values(data.severity_counts).reduce((a, b) => a + b, 0);
+        if (total > 0) {
+            severityDistributionChart.data.datasets[0].data = [
+                (data.severity_counts.critical / total) * 100,
+                (data.severity_counts.high / total) * 100,
+                (data.severity_counts.medium / total) * 100,
+                (data.severity_counts.low / total) * 100
+            ];
+            severityDistributionChart.update('none');
+        }
+    }
+}
+
+function updateIncidentChart(range) {
+    document.querySelectorAll('.chart-option').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector(`[data-range="${range}"]`).classList.add('active');
+    
+    // Load chart data for specified range
+    loadIncidentChartData(range);
+}
+
+function loadIncidentChartData(range) {
+    fetch(`/api/incidents/chart-data?range=${range}`)
+        .then(response => response.json())
+        .then(data => {
+            updateIncidentTrendsChart(data);
+        })
+        .catch(error => {
+            console.error('Error loading incident chart data:', error);
+        });
+}
+
+function createIncident() {
+    const modal = new bootstrap.Modal(document.getElementById('createIncidentModal'));
+    modal.show();
+}
+
+function submitIncident() {
+    const formData = {
+        title: document.getElementById('incident-title').value,
+        severity: document.getElementById('incident-severity').value,
+        type: document.getElementById('incident-type').value,
+        assignee: document.getElementById('incident-assignee').value,
+        description: document.getElementById('incident-description').value,
+        affected_systems: document.getElementById('affected-systems').value,
+        impact_assessment: document.getElementById('impact-assessment').value
+    };
+    
+    fetch('/api/incidents', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': getCSRFToken()
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showStatusMessage('Incident created successfully', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('createIncidentModal')).hide();
+            document.getElementById('create-incident-form').reset();
+            loadIncidentData(); // Reload data
+        } else {
+            showErrorMessage(data.message || 'Failed to create incident');
+        }
+    })
+    .catch(error => {
+        console.error('Error creating incident:', error);
+        showErrorMessage('Failed to create incident');
+    });
+}
+
+function viewIncident(incidentId) {
+    window.location.href = `/incidents/${incidentId}`;
+}
+
+function editIncident(incidentId) {
+    window.location.href = `/incidents/${incidentId}/edit`;
+}
+
+function assignIncident(incidentId) {
+    // Show assignment modal or quick assign
+    const assignee = prompt('Enter assignee name or ID:');
+    if (assignee) {
+        fetch(`/api/incidents/${incidentId}/assign`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': getCSRFToken()
+            },
+            body: JSON.stringify({ assignee: assignee })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showStatusMessage('Incident assigned successfully', 'success');
+                loadIncidentData(); // Reload data
+            } else {
+                showErrorMessage(data.message || 'Failed to assign incident');
+            }
+        })
+        .catch(error => {
+            console.error('Error assigning incident:', error);
+            showErrorMessage('Failed to assign incident');
+        });
+    }
+}
+
+function bulkAssign() {
+    const selectedIncidents = getSelectedIncidents();
+    if (selectedIncidents.length === 0) {
+        showErrorMessage('Please select incidents to assign');
+        return;
+    }
+    
+    const assignee = prompt('Enter assignee name or ID:');
+    if (assignee) {
+        fetch('/api/incidents/bulk-assign', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': getCSRFToken()
+            },
+            body: JSON.stringify({ 
+                incident_ids: selectedIncidents,
+                assignee: assignee 
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showStatusMessage(`${data.assigned_count} incidents assigned successfully`, 'success');
+                loadIncidentData(); // Reload data
+            } else {
+                showErrorMessage(data.message || 'Failed to assign incidents');
+            }
+        })
+        .catch(error => {
+            console.error('Error bulk assigning incidents:', error);
+            showErrorMessage('Failed to assign incidents');
+        });
+    }
+}
+
+function escalateIncidents() {
+    const selectedIncidents = getSelectedIncidents();
+    if (selectedIncidents.length === 0) {
+        showErrorMessage('Please select incidents to escalate');
+        return;
+    }
+    
+    if (confirm(`Are you sure you want to escalate ${selectedIncidents.length} incident(s)?`)) {
+        fetch('/api/incidents/bulk-escalate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': getCSRFToken()
+            },
+            body: JSON.stringify({ incident_ids: selectedIncidents })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showStatusMessage(`${data.escalated_count} incidents escalated successfully`, 'success');
+                loadIncidentData(); // Reload data
+            } else {
+                showErrorMessage(data.message || 'Failed to escalate incidents');
+            }
+        })
+        .catch(error => {
+            console.error('Error escalating incidents:', error);
+            showErrorMessage('Failed to escalate incidents');
+        });
+    }
+}
+
+function generateReport() {
+    showStatusMessage('Generating incident report...', 'info');
+    
+    fetch('/api/incidents/generate-report', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': getCSRFToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showStatusMessage(data.message, 'success');
+        } else {
+            showErrorMessage(data.message || 'Failed to generate report');
+        }
+    })
+    .catch(error => {
+        console.error('Error generating report:', error);
+        showErrorMessage('Failed to generate incident report');
+    });
+}
+
+function exportIncidents() {
+    showStatusMessage('Exporting incident data...', 'info');
+    
+    fetch('/api/incidents/export')
+        .then(response => response.blob())
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `incidents_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            showStatusMessage('Incident data exported successfully', 'success');
+        })
+        .catch(error => {
+            console.error('Error exporting incidents:', error);
+            showErrorMessage('Failed to export incident data');
+        });
+}
+
+function automateResponse() {
+    if (confirm('Are you sure you want to trigger automated incident response?')) {
+        showStatusMessage('Triggering automated response...', 'info');
+        
+        fetch('/api/incidents/automate-response', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': getCSRFToken()
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showStatusMessage(data.message, 'success');
+            } else {
+                showErrorMessage(data.message || 'Failed to trigger automated response');
+            }
+        })
+        .catch(error => {
+            console.error('Error triggering automated response:', error);
+            showErrorMessage('Failed to trigger automated response');
+        });
+    }
+}
+
+function refreshIncidents() {
+    loadIncidentData();
+    showStatusMessage('Incident data refreshed', 'success');
+}
+
+function refreshTeamStatus() {
+    fetch('/api/incidents/team-status')
+        .then(response => response.json())
+        .then(data => {
+            updateTeamStatus(data.team_members);
+            showStatusMessage('Team status refreshed', 'success');
+        })
+        .catch(error => {
+            console.error('Error refreshing team status:', error);
+            showErrorMessage('Failed to refresh team status');
+        });
+}
+
+function filterIncidents(filter) {
+    console.log('Filtering incidents:', filter);
+    // Implement incident filtering logic
+}
+
+function getSelectedIncidents() {
+    const checkboxes = document.querySelectorAll('input[name="incident_select"]:checked');
+    return Array.from(checkboxes).map(cb => cb.value);
+}
+
+function updatePagination() {
+    const showingCount = document.getElementById('showing-count');
+    const totalCount = document.getElementById('total-count');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    
+    if (showingCount) showingCount.textContent = Math.min(incidentsPerPage, totalIncidents);
+    if (totalCount) totalCount.textContent = totalIncidents;
+    
+    if (prevBtn) prevBtn.disabled = currentPage === 1;
+    if (nextBtn) nextBtn.disabled = currentPage * incidentsPerPage >= totalIncidents;
+}
+
+function previousPage() {
+    if (currentPage > 1) {
+        currentPage--;
+        loadIncidentData();
+    }
+}
+
+function nextPage() {
+    if (currentPage * incidentsPerPage < totalIncidents) {
+        currentPage++;
+        loadIncidentData();
+    }
+}
+
+function goToPage(page) {
+    currentPage = page;
+    loadIncidentData();
+}
+
+function initializeIncidentForm() {
+    const form = document.getElementById('create-incident-form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            submitIncident();
+        });
+    }
+}
+
+function initializeMiniCharts() {
+    // Initialize mini charts for status cards
+    // Similar to dashboard mini charts implementation
+}
+
+function removeSkeletons() {
+    document.querySelectorAll('.skeleton').forEach(element => {
+        element.classList.remove('skeleton');
+    });
+}
+
+function getSeverityBadgeClass(severity) {
+    switch (severity.toLowerCase()) {
+        case 'critical': return 'bg-danger';
+        case 'high': return 'bg-warning';
+        case 'medium': return 'bg-info';
+        case 'low': return 'bg-success';
+        default: return 'bg-secondary';
+    }
+}
+
+function getStatusBadgeClass(status) {
+    switch (status.toLowerCase()) {
+        case 'active': return 'online';
+        case 'investigating': return 'warning';
+        case 'resolved': return 'success';
+        case 'escalated': return 'danger';
+        default: return 'offline';
+    }
+}
+
+// Export functions for global access
+window.createIncident = createIncident;
+window.submitIncident = submitIncident;
+window.viewIncident = viewIncident;
+window.editIncident = editIncident;
+window.assignIncident = assignIncident;
+window.bulkAssign = bulkAssign;
+window.escalateIncidents = escalateIncidents;
+window.generateReport = generateReport;
+window.exportIncidents = exportIncidents;
+window.automateResponse = automateResponse;
+window.refreshIncidents = refreshIncidents;
+window.refreshTeamStatus = refreshTeamStatus;
+window.filterIncidents = filterIncidents;
+window.previousPage = previousPage;
+window.nextPage = nextPage;
+window.goToPage = goToPage;
+</script>
+
+<style>
+/* Incident Management specific styles */
+.legend-color.created { background: #1a73e8; }
+.legend-color.resolved { background: #10b981; }
+.legend-color.escalated { background: #f97316; }
+
+.severity-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: var(--radius-full);
+}
+
+.severity-indicator.critical { background: var(--danger-color); }
+.severity-indicator.high { background: var(--warning-color); }
+.severity-indicator.medium { background: var(--info-color); }
+.severity-indicator.low { background: var(--success-color); }
+
+.severity-info {
+    display: flex;
+    justify-content: space-between;
+    flex: 1;
+    font-size: 0.875rem;
+}
+
+.severity-label { color: var(--gray-300); }
+.severity-value { font-weight: 600; color: var(--gray-100); }
+
+.incidents-table-container {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.incident-link {
+    color: var(--primary-light);
+    text-decoration: none;
+    font-weight: 600;
+    transition: var(--transition-normal);
+}
+
+.incident-link:hover {
+    color: var(--primary-color);
+    text-shadow: 0 0 8px rgba(26, 115, 232, 0.5);
+}
+
+.incident-title {
+    font-weight: 600;
+    color: var(--gray-100);
+    margin-bottom: var(--spacing-xs);
+}
+
+.incident-meta {
+    display: flex;
+    gap: var(--spacing-md);
+    font-size: 0.75rem;
+    color: var(--gray-400);
+}
+
+.incident-type {
+    background: rgba(26, 115, 232, 0.1);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-full);
+    color: var(--primary-light);
+}
+
+.incident-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+}
+
+.team-status-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--spacing-lg);
+}
+
+.team-member {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg);
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: var(--radius-lg);
+    transition: var(--transition-normal);
+}
+
+.team-member:hover {
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateY(-2px);
+}
+
+.member-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-full);
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1rem;
+}
+
+.member-info {
+    flex: 1;
+}
+
+.member-info h5 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--gray-100);
+    margin-bottom: var(--spacing-xs);
+}
+
+.member-info p {
+    color: var(--gray-400);
+    margin-bottom: var(--spacing-sm);
+    font-size: 0.875rem;
+}
+
+.member-status {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-full);
+}
+
+.member-status.online {
+    background: rgba(16, 185, 129, 0.2);
+    color: var(--success-color);
+}
+
+.member-status.busy {
+    background: rgba(249, 115, 22, 0.2);
+    color: var(--warning-color);
+}
+
+.member-status.offline {
+    background: rgba(239, 68, 68, 0.2);
+    color: var(--danger-color);
+}
+
+.member-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.assignee-info {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.assignee-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: var(--radius-full);
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.75rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .team-status-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .team-member {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .member-actions {
+        margin-top: var(--spacing-md);
+    }
+    
+    .incident-actions {
+        flex-direction: column;
+        gap: var(--spacing-xs);
+    }
+    
+    .incident-meta {
+        flex-direction: column;
+        gap: var(--spacing-xs);
+    }
+}
+</style>
+{% endblock %}

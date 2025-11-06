@@ -4,8 +4,20 @@
 
 # Load configuration and functions
 SCRIPT_DIR="$(dirname "$0")"
-source "$SCRIPT_DIR/../configs/security-config.conf"
 source "$SCRIPT_DIR/common-functions.sh"
+
+# Setup user environment (will set SECURITY_SUITE_HOME and other variables)
+setup_user_environment
+
+# Load configuration
+if [ -f "$SECURITY_SUITE_HOME/configs/security-config.conf" ]; then
+    source "$SECURITY_SUITE_HOME/configs/security-config.conf"
+fi
+
+# Load behavioral analysis if enabled
+if [ "$BEHAVIORAL_ANALYSIS_ENABLED" = "true" ]; then
+    source "$SCRIPT_DIR/behavioral-analysis-optimized.sh"
+fi
 
 # Daily scan configuration
 DAILY_SCAN_TOOLS=("clamav")  # Quick scan tools only
@@ -19,6 +31,19 @@ echo "=============================" >> "$SCAN_LOG"
 
 # Initialize logging
 init_logging "$SCAN_TYPE"
+
+# Initialize behavioral analysis if enabled
+if [ "$BEHAVIORAL_ANALYSIS_ENABLED" = "true" ]; then
+    log_info "Initializing behavioral analysis..."
+    init_behavioral_analysis
+    
+    # Check if baseline exists, create if needed
+    baseline_exists=$(sqlite3 "$BEHAVIORAL_DATABASE" "SELECT COUNT(*) FROM baseline_data WHERE is_active = 1;" 2>/dev/null || echo "0")
+    if [ "$baseline_exists" -eq 0 ]; then
+        log_info "Creating behavioral baseline (this may take some time)..."
+        create_baseline "$BEHAVIORAL_LEARNING_PERIOD"
+    fi
+fi
 
 # Send start notification
 send_notification "🛡️ Daily Security Scan" "Starting daily security scan..." "security-high" "normal"
@@ -57,6 +82,54 @@ for tool in "${SELECTED_SECURITY_TOOLS[@]}"; do
         echo "" >> "$SCAN_LOG"
     fi
 done
+
+# Run behavioral analysis if enabled
+if [ "$BEHAVIORAL_ANALYSIS_ENABLED" = "true" ]; then
+    log_info "Running behavioral analysis..."
+    
+    # Collect current system metrics
+    collect_system_metrics
+    collect_process_behavior
+    collect_network_behavior
+    collect_file_access_patterns
+    
+    # Detect anomalies
+    detect_anomalies
+    
+    # Calculate threat score
+    current_threat_score=$(calculate_threat_score)
+    log_info "Current behavioral threat score: $current_threat_score"
+    
+    # Check if threat score exceeds threshold
+    if [ "$current_threat_score" -ge "$BEHAVIORAL_THREAT_SCORE_THRESHOLD" ]; then
+        log_warning "🚨 HIGH BEHAVIORAL THREAT SCORE DETECTED: $current_threat_score (threshold: $BEHAVIORAL_THREAT_SCORE_THRESHOLD)"
+        
+        # Get recent anomalies for incident details
+        recent_anomalies=$(sqlite3 "$SECURITY_SUITE_HOME/configs/behavioral_analysis/behavioral_data.db" << EOF
+SELECT GROUP_CONCAT(anomaly_type || ':' || metric_name || ' (' || severity || ')', ', ')
+FROM anomaly_events
+WHERE timestamp > datetime('now', '-10 minutes') AND resolved = 0 AND false_positive = 0
+LIMIT 10;
+EOF
+)
+        
+        incident_details="Behavioral analysis detected multiple anomalies: $recent_anomalies (Threat Score: $current_threat_score)"
+        
+        # Trigger incident response if available
+        if command -v automated_response &>/dev/null; then
+            automated_response "behavioral_anomaly" "$incident_details" "high"
+        else
+            send_notification "🚨 Behavioral Anomaly Detected" "$incident_details" "security-critical" "critical"
+        fi
+    fi
+    
+    # Update behavioral database
+    update_behavioral_database
+    
+    # Generate behavioral report
+    report_file=$(generate_behavioral_report "text" "24")
+    log_info "Behavioral analysis report generated: $report_file"
+fi
 
 # Final summary
 scan_end=$(date +%s)

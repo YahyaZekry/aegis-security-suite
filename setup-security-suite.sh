@@ -1,7 +1,9 @@
 #!/bin/bash
 #
-# Complete Interactive Security Suite Setup for Garuda Linux - Version 5.0
-# Includes scheduling configuration and comprehensive final testing
+# Complete Interactive Security Suite Setup for Garuda Linux - Version 6.0
+# Enhanced with menu-driven installation, comprehensive dependency checking,
+# component installation functions, configuration management, and error handling
+#
 # All issues fixed: existing detection, proper test execution, scheduling, comprehensive validation
 #
 
@@ -19,10 +21,20 @@ CYAN='\033[0;36m'
 WHITE='\033[1;37m'
 NC='\033[0m' # No Color
 
-# Dynamic path resolution
-CURRENT_USER=$(whoami)
-CURRENT_HOME=$(getent passwd "$CURRENT_USER" | cut -d: -f6)
-SECURITY_SUITE_HOME="${SECURITY_SUITE_HOME:-$CURRENT_HOME/security-suite}"
+# Source common functions for user detection
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/scripts/common-functions.sh" ]; then
+    source "$SCRIPT_DIR/scripts/common-functions.sh"
+fi
+
+# Setup user environment (will set CURRENT_USER, CURRENT_HOME, SECURITY_SUITE_HOME)
+setup_user_environment
+
+# Installation tracking
+INSTALLATION_TYPE=""
+INSTALLATION_COMPONENTS=()
+ROLLBACK_ENABLED=true
+ERROR_LOG="$SECURITY_SUITE_HOME/logs/installation_errors.log"
 
 # Path validation function
 validate_path() {
@@ -51,38 +63,85 @@ validate_path() {
     return 0
 }
 
-# Configuration variables with defaults
-NOTIFICATIONS_ENABLED=true
-NOTIFICATION_URGENCY="normal"
-UPDATE_BEFORE_SCAN=true
-REAL_TIME_FEEDBACK=true
-AUTO_CLEANUP_LOGS=false
-MAX_LOG_AGE_DAYS=30
-USE_COLORS=true
-PROGRESS_INDICATORS=true
-ENABLE_SCHEDULING=false
-DAILY_TIME="09:00"
-WEEKLY_TIME="10:00"
-WEEKLY_DAY="Mon"
-MONTHLY_TIME="11:00"
-MONTHLY_DAY="1"
-SELECTED_TOOLS=("clamav" "rkhunter" "chkrootkit" "lynis")
-DAILY_SCAN_DIRS=("$HOME/Documents" "$HOME/Downloads" "$HOME/Desktop" "$HOME/.config")
-WEEKLY_SCAN_DIRS=("$HOME")
-MONTHLY_SCAN_DIRS=("$HOME" "/tmp" "/var/tmp")
+# Error handling and logging
+log_error() {
+    local error_message="$1"
+    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+    
+    # Create log directory if it doesn't exist
+    mkdir -p "$(dirname "$ERROR_LOG")"
+    
+    echo "[$timestamp] ERROR: $error_message" >> "$ERROR_LOG"
+    echo -e "${RED}❌ ERROR: $error_message${NC}"
+}
 
-echo -e "${CYAN}================================================================${NC}"
-echo -e "${WHITE}      🛡️ COMPLETE SECURITY SUITE V5.0 SETUP 🛡️${NC}"
-echo -e "${CYAN}================================================================${NC}"
-echo -e "${YELLOW}Enhanced with automatic scheduling and comprehensive testing!${NC}"
-echo -e "${YELLOW}Complete security automation for your Garuda Linux system.${NC}"
-echo -e "${CYAN}================================================================${NC}"
-echo ""
-echo -e "${BLUE}Setup timestamp: ${SETUP_TIMESTAMP}${NC}"
-echo -e "${BLUE}Setup date: ${SETUP_DATE}${NC}"
-echo ""
+log_info() {
+    local info_message="$1"
+    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+    
+    mkdir -p "$(dirname "$ERROR_LOG")"
+    echo "[$timestamp] INFO: $info_message" >> "$ERROR_LOG"
+    echo -e "${BLUE}ℹ️  INFO: $info_message${NC}"
+}
 
-# Validation functions
+# Rollback function
+rollback_installation() {
+    if [ "$ROLLBACK_ENABLED" != "true" ]; then
+        echo -e "${YELLOW}⚠️  Rollback is disabled${NC}"
+        return 1
+    fi
+    
+    echo -e "${RED}🔄 Rolling back installation...${NC}"
+    
+    # Stop and disable any services that were created
+    for component in "${INSTALLATION_COMPONENTS[@]}"; do
+        case "$component" in
+            "web-dashboard")
+                systemctl --user stop garuda-dashboard.service 2>/dev/null || true
+                systemctl --user disable garuda-dashboard.service 2>/dev/null || true
+                rm -f "$HOME/.config/systemd/user/garuda-dashboard.service" 2>/dev/null
+                ;;
+            "behavioral-analysis")
+                systemctl --user stop behavioral-monitor.service 2>/dev/null || true
+                systemctl --user stop behavioral-monitor.timer 2>/dev/null || true
+                systemctl --user disable behavioral-monitor.service 2>/dev/null || true
+                systemctl --user disable behavioral-monitor.timer 2>/dev/null || true
+                rm -f "$HOME/.config/systemd/user/behavioral-monitor.service" 2>/dev/null
+                rm -f "$HOME/.config/systemd/user/behavioral-monitor.timer" 2>/dev/null
+                ;;
+        esac
+    done
+    
+    systemctl --user daemon-reload 2>/dev/null || true
+    
+    # Remove created directories
+    if [ -d "$SECURITY_SUITE_HOME" ]; then
+        mv "$SECURITY_SUITE_HOME" "$SECURITY_SUITE_HOME.failed_$(date +%s)" 2>/dev/null || true
+    fi
+    
+    echo -e "${GREEN}✅ Rollback completed${NC}"
+    return 0
+}
+
+# Progress indicator with spinner
+show_progress_with_spinner() {
+    local message="$1"
+    local pid=$2
+    local delay=0.1
+    local spinstr='|/-\'
+    
+    echo -ne "${YELLOW}⏳ $message... ${NC}"
+    while [ "$(ps a | awk '{print $1}' | grep $pid)" ]; do
+        local temp=${spinstr#?}
+        printf " [%c]" "$spinstr"
+        local spinstr=$temp${spinstr%"$temp"}
+        sleep $delay
+        printf "\b\b\b\b\b"
+    done
+    printf "    \b\b\b\b"
+}
+
+# Enhanced validation functions
 show_progress() {
     local message=$1
     echo -e "${YELLOW}⏳ $message...${NC}"
@@ -100,12 +159,12 @@ show_warning() {
 
 show_error() {
     local message=$1
-    echo -e "${RED}❌ $message${NC}"
+    log_error "$message"
 }
 
 show_info() {
     local message=$1
-    echo -e "${BLUE}ℹ️  $message${NC}"
+    log_info "$message"
 }
 
 # Check if running as root
@@ -115,813 +174,474 @@ if [ "$EUID" -eq 0 ]; then
     exit 1
 fi
 
-# Check for existing installation
-check_existing_installation() {
-    echo -e "${BLUE}🔍 Checking for existing security suite installation...${NC}"
+# Comprehensive dependency checking
+check_system_dependencies() {
+    echo -e "${BLUE}🔍 Checking system dependencies...${NC}"
     echo ""
     
-    if [ -d "$SECURITY_SUITE_HOME" ]; then
-        echo -e "${YELLOW}📁 Found existing security suite directory!${NC}"
-        echo ""
-        
-        # Show what's currently installed
-        if [ -f "$SECURITY_SUITE_HOME/SCRIPT_INDEX.md" ]; then
-            local existing_timestamp=$(grep "Generated:" "$SECURITY_SUITE_HOME/SCRIPT_INDEX.md" | head -1 | cut -d' ' -f2)
-            echo -e "${CYAN}Current installation timestamp: ${existing_timestamp}${NC}"
-        fi
-        
-        if [ -f "$SECURITY_SUITE_HOME/configs/security-config.conf" ]; then
-            echo -e "${GREEN}✅ Configuration file found${NC}"
-        fi
-        
-        local script_count=$(find "$SECURITY_SUITE_HOME/scripts" -name "security-*.sh" -type f 2>/dev/null | wc -l)
-        echo -e "${GREEN}✅ Found $script_count security scripts${NC}"
-        
-        local log_count=$(find "$SECURITY_SUITE_HOME/logs" -name "*.log" -type f 2>/dev/null | wc -l)
-        echo -e "${GREEN}✅ Found $log_count log files${NC}"
-        
-        # Check for existing timers
-        local timer_count=$(systemctl --user list-timers | grep -c "security.*scan" 2>/dev/null || echo "0")
-        if [ "$timer_count" -gt 0 ]; then
-            echo -e "${GREEN}✅ Found $timer_count active scheduling timers${NC}"
-        fi
-        
-        echo ""
-        echo -e "${YELLOW}What would you like to do?${NC}"
-        echo -e "${CYAN}1)${NC} Update existing installation (keep logs, update scripts)"
-        echo -e "${CYAN}2)${NC} Fresh installation with backup (backup old, create new)"
-        echo -e "${CYAN}3)${NC} Fresh installation (remove old, create new)"
-        echo -e "${CYAN}4)${NC} Cancel setup"
-        echo ""
-        
-        read -p "Enter your choice (1-4): " existing_choice
-        echo ""
-        
-        case $existing_choice in
-            1)
-                echo -e "${GREEN}🔄 Will update existing installation${NC}"
-                return 0
-                ;;
-            2)
-                echo -e "${YELLOW}📦 Creating backup of existing installation...${NC}"
-                local backup_name="security-suite-backup-$(date +%Y%m%d_%H%M%S)"
-                mv "$SECURITY_SUITE_HOME" "$CURRENT_HOME/$backup_name"
-                echo -e "${GREEN}✅ Backup saved as: ~/$backup_name${NC}"
-                return 0
-                ;;
-            3)
-                echo -e "${RED}🗑️  Removing existing installation...${NC}"
-                read -p "Are you sure you want to permanently delete the old installation? (y/N): " -n 1 -r
-                echo ""
-                if [[ $REPLY =~ ^[Yy]$ ]]; then
-                    # Stop and disable any existing timers
-                    systemctl --user stop security-*-scan.timer 2>/dev/null || true
-                    systemctl --user disable security-*-scan.timer 2>/dev/null || true
-                    rm -f "$CURRENT_HOME/.config/systemd/user/security-*-scan"* 2>/dev/null
-                    systemctl --user daemon-reload
-                    
-                    rm -rf "$SECURITY_SUITE_HOME"
-                    echo -e "${GREEN}✅ Old installation removed${NC}"
-                else
-                    echo -e "${YELLOW}📦 Creating backup instead...${NC}"
-                    local backup_name="security-suite-backup-$(date +%Y%m%d_%H%M%S)"
-                    mv "$SECURITY_SUITE_HOME" "$CURRENT_HOME/$backup_name"
-                    echo -e "${GREEN}✅ Backup saved as: ~/$backup_name${NC}"
-                fi
-                return 0
-                ;;
-            4)
-                echo -e "${BLUE}👋 Setup cancelled by user${NC}"
-                exit 0
-                ;;
-            *)
-                echo -e "${RED}Invalid choice. Defaulting to update.${NC}"
-                return 0
-                ;;
-        esac
-    else
-        echo -e "${GREEN}✅ No existing installation found - proceeding with fresh setup${NC}"
-        echo ""
-    fi
-}
-
-# Check security tools status
-check_security_tools_status() {
-    echo -e "${BLUE}🔍 Checking security tools installation status...${NC}"
-    echo ""
+    local system_deps=("systemd" "sqlite3" "curl" "wget" "python3" "python-pip")
+    local missing_system_deps=()
+    local optional_system_deps=("nginx" "ufw" "firewalld")
+    local missing_optional_deps=()
     
-    local tools=("clamav" "rkhunter" "chkrootkit" "lynis")
-    local installed_tools=()
-    local missing_tools=()
-    
-    for tool in "${tools[@]}"; do
-        if pacman -Qi "$tool" &>/dev/null; then
-            installed_tools+=("$tool")
-            echo -e "${GREEN}✅ $tool - Already installed${NC}"
+    # Check required system dependencies
+    for dep in "${system_deps[@]}"; do
+        if command -v "$dep" &>/dev/null || pacman -Qi "$dep" &>/dev/null; then
+            echo -e "${GREEN}✅ $dep - Available${NC}"
         else
-            missing_tools+=("$tool")
-            echo -e "${YELLOW}⏳ $tool - Not installed${NC}"
+            echo -e "${RED}❌ $dep - Missing${NC}"
+            missing_system_deps+=("$dep")
         fi
     done
     
     echo ""
-    if [ ${#installed_tools[@]} -gt 0 ]; then
-        echo -e "${GREEN}📦 Already installed: ${installed_tools[*]}${NC}"
-    fi
+    echo -e "${YELLOW}Optional dependencies:${NC}"
     
-    if [ ${#missing_tools[@]} -gt 0 ]; then
-        echo -e "${YELLOW}📦 Need to install: ${missing_tools[*]}${NC}"
-    else
-        echo -e "${GREEN}🎉 All security tools are already installed!${NC}"
-    fi
+    # Check optional system dependencies
+    for dep in "${optional_system_deps[@]}"; do
+        if command -v "$dep" &>/dev/null || pacman -Qi "$dep" &>/dev/null; then
+            echo -e "${GREEN}✅ $dep - Available (optional)${NC}"
+        else
+            echo -e "${YELLOW}⏳ $dep - Not installed (optional)${NC}"
+            missing_optional_deps+=("$dep")
+        fi
+    done
     
     echo ""
+    
+    # Install missing required dependencies
+    if [ ${#missing_system_deps[@]} -gt 0 ]; then
+        echo -e "${RED}❌ Missing required dependencies: ${missing_system_deps[*]}${NC}"
+        read -p "Install missing required dependencies? (Y/n): " -n 1 -r
+        echo ""
+        if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+            show_progress "Installing required system dependencies"
+            if sudo pacman -Sy --needed --noconfirm "${missing_system_deps[@]}"; then
+                show_success "Required dependencies installed"
+            else
+                show_error "Failed to install required dependencies"
+                return 1
+            fi
+        else
+            show_error "Required dependencies are needed for proper operation"
+            return 1
+        fi
+    fi
+    
+    # Offer optional dependencies
+    if [ ${#missing_optional_deps[@]} -gt 0 ]; then
+        echo -e "${YELLOW}Optional dependencies available: ${missing_optional_deps[*]}${NC}"
+        read -p "Install optional dependencies? (y/N): " -n 1 -r
+        echo ""
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            show_progress "Installing optional dependencies"
+            sudo pacman -Sy --needed --noconfirm "${missing_optional_deps[@]}" || true
+            show_success "Optional dependencies installation attempted"
+        fi
+    fi
+    
     return 0
 }
 
-# Interactive menu functions
-show_menu_header() {
-    clear
-    echo -e "${CYAN}================================================================${NC}"
-    echo -e "${WHITE}      🔧 SECURITY SUITE CONFIGURATION MENU 🔧${NC}"
-    echo -e "${CYAN}================================================================${NC}"
-    echo ""
-}
-
-press_enter_to_continue() {
-    echo ""
-    read -p "Press Enter to continue..." -r
-}
-
-# Scheduling configuration
-configure_scheduling() {
-    show_menu_header
-    echo -e "${GREEN}⏰ Automated Scheduling Configuration${NC}"
+# Check security tools
+check_security_tools_dependencies() {
+    echo -e "${BLUE}🔍 Checking security tools...${NC}"
     echo ""
     
-    read -p "Enable automatic scheduling of security scans? (Y/n): " -n 1 -r
-    echo ""
-    if [[ $REPLY =~ ^[Nn]$ ]]; then
-        ENABLE_SCHEDULING=false
-        echo -e "${YELLOW}📅 Scheduling disabled - you'll run scans manually${NC}"
-    else
-        ENABLE_SCHEDULING=true
-        echo -e "${GREEN}📅 Scheduling enabled${NC}"
-        echo ""
-        
-        # Configure daily scan time
-        echo -e "${YELLOW}Daily Scan Scheduling:${NC}"
-        read -p "Daily scan time (HH:MM format, default 09:00): " daily_time_input
-        if [[ "$daily_time_input" =~ ^([0-1][0-9]|2[0-3]):[0-5][0-9]$ ]]; then
-            DAILY_TIME="$daily_time_input"
-        fi
-        echo -e "${GREEN}✅ Daily scan scheduled for: $DAILY_TIME${NC}"
-        echo ""
-        
-        # Configure weekly scan
-        echo -e "${YELLOW}Weekly Scan Scheduling:${NC}"
-        read -p "Weekly scan day (Mon/Tue/Wed/Thu/Fri/Sat/Sun, default Mon): " weekly_day_input
-        case "$weekly_day_input" in
-            Mon|Tue|Wed|Thu|Fri|Sat|Sun) WEEKLY_DAY="$weekly_day_input" ;;
-            *) WEEKLY_DAY="Mon" ;;
-        esac
-        read -p "Weekly scan time (HH:MM format, default 10:00): " weekly_time_input
-        if [[ "$weekly_time_input" =~ ^([0-1][0-9]|2[0-3]):[0-5][0-9]$ ]]; then
-            WEEKLY_TIME="$weekly_time_input"
-        fi
-        echo -e "${GREEN}✅ Weekly scan scheduled for: $WEEKLY_DAY at $WEEKLY_TIME${NC}"
-        echo ""
-        
-        # Configure monthly scan
-        echo -e "${YELLOW}Monthly Scan Scheduling:${NC}"
-        read -p "Monthly scan day (1-28, default 1): " monthly_day_input
-        if [[ "$monthly_day_input" =~ ^([1-9]|1[0-9]|2[0-8])$ ]]; then
-            MONTHLY_DAY="$monthly_day_input"
-        fi
-        read -p "Monthly scan time (HH:MM format, default 11:00): " monthly_time_input
-        if [[ "$monthly_time_input" =~ ^([0-1][0-9]|2[0-3]):[0-5][0-9]$ ]]; then
-            MONTHLY_TIME="$monthly_time_input"
-        fi
-        echo -e "${GREEN}✅ Monthly scan scheduled for: Day $MONTHLY_DAY at $MONTHLY_TIME${NC}"
-        echo ""
-        
-        echo -e "${CYAN}📅 Scheduling Summary:${NC}"
-        echo -e "   • ${WHITE}Daily:${NC} Every day at $DAILY_TIME"
-        echo -e "   • ${WHITE}Weekly:${NC} Every $WEEKLY_DAY at $WEEKLY_TIME"
-        echo -e "   • ${WHITE}Monthly:${NC} Day $MONTHLY_DAY of each month at $MONTHLY_TIME"
-    fi
+    local security_tools=("clamav" "rkhunter" "chkrootkit" "lynis")
+    local missing_security_tools=()
     
-    press_enter_to_continue
-}
-
-# Main configuration menu (updated)
-main_configuration_menu() {
-    while true; do
-        show_menu_header
-        echo -e "${GREEN}Choose what you'd like to configure:${NC}"
-        echo ""
-        echo -e "${CYAN}1)${NC} Security Tools Selection"
-        echo -e "${CYAN}2)${NC} Scan Directory Configuration"
-        echo -e "${CYAN}3)${NC} Notification Settings"
-        echo -e "${CYAN}4)${NC} Scanning Preferences"
-        echo -e "${CYAN}5)${NC} Log Management Settings"
-        echo -e "${CYAN}6)${NC} Display & UI Settings"
-        echo -e "${CYAN}7)${NC} Automated Scheduling Configuration ⭐ NEW!"
-        echo -e "${CYAN}8)${NC} Review All Settings"
-        echo -e "${CYAN}9)${NC} Use Default Settings (Quick Setup)"
-        echo -e "${CYAN}0)${NC} Continue with Setup"
-        echo ""
-        read -p "Enter your choice (0-9): " choice
-        
-        case $choice in
-            1) configure_security_tools ;;
-            2) configure_scan_directories ;;
-            3) configure_notifications ;;
-            4) configure_scanning_preferences ;;
-            5) configure_log_management ;;
-            6) configure_display_settings ;;
-            7) configure_scheduling ;;
-            8) review_all_settings ;;
-            9) use_default_settings ;;
-            0) break ;;
-            *) echo -e "${RED}Invalid choice. Please enter 0-9.${NC}"; sleep 2 ;;
-        esac
-    done
-}
-
-# Security tools configuration
-configure_security_tools() {
-    show_menu_header
-    echo -e "${GREEN}🔧 Security Tools Selection${NC}"
-    echo ""
-    echo -e "${YELLOW}Available security tools:${NC}"
-    echo ""
-    
-    local tools=("clamav" "rkhunter" "chkrootkit" "lynis")
-    local descriptions=("Antivirus scanner" "Rootkit hunter" "Rootkit checker" "Security auditing tool")
-    
-    # Show current installation status
-    echo -e "${CYAN}Current installation status:${NC}"
-    for i in "${!tools[@]}"; do
-        if pacman -Qi "${tools[i]}" &>/dev/null; then
-            echo -e "${GREEN}✅ ${tools[i]}${NC} - ${descriptions[i]} (already installed)"
+    for tool in "${security_tools[@]}"; do
+        if pacman -Qi "$tool" &>/dev/null; then
+            echo -e "${GREEN}✅ $tool - Installed${NC}"
         else
-            echo -e "${YELLOW}⏳ ${tools[i]}${NC} - ${descriptions[i]} (not installed)"
+            echo -e "${YELLOW}⏳ $tool - Not installed${NC}"
+            missing_security_tools+=("$tool")
         fi
     done
+    
     echo ""
     
-    SELECTED_TOOLS=()
-    
-    for i in "${!tools[@]}"; do
-        read -p "Include ${tools[i]} in security suite? (Y/n): " -n 1 -r
+    if [ ${#missing_security_tools[@]} -gt 0 ]; then
+        echo -e "${YELLOW}Missing security tools: ${missing_security_tools[*]}${NC}"
+        read -p "Install missing security tools? (Y/n): " -n 1 -r
         echo ""
         if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-            SELECTED_TOOLS+=("${tools[i]}")
-            echo -e "  ${GREEN}✅ ${tools[i]} selected${NC}"
-        else
-            echo -e "  ${YELLOW}⏭️  ${tools[i]} skipped${NC}"
-        fi
-        echo ""
-    done
-    
-    echo -e "${GREEN}Selected tools: ${SELECTED_TOOLS[*]}${NC}"
-    press_enter_to_continue
-}
-
-# [Include other configuration functions from V4...]
-configure_scan_directories() {
-    show_menu_header
-    echo -e "${GREEN}📁 Scan Directory Configuration${NC}"
-    echo ""
-    
-    # Daily scan directories
-    echo -e "${YELLOW}Daily Scan Directories (quick scan):${NC}"
-    echo -e "Current: ${DAILY_SCAN_DIRS[*]}"
-    read -p "Add custom directory? (leave blank to skip): " custom_dir
-    if [[ -n "$custom_dir" && -d "$custom_dir" ]]; then
-        DAILY_SCAN_DIRS+=("$custom_dir")
-        echo -e "${GREEN}✅ Added: $custom_dir${NC}"
-    fi
-    echo ""
-    
-    # Weekly scan option
-    echo -e "${YELLOW}Weekly Scan (comprehensive):${NC}"
-    echo -e "Current: Full home directory (${HOME})"
-    read -p "Scan entire home directory for weekly scans? (Y/n): " -n 1 -r
-    echo ""
-    if [[ $REPLY =~ ^[Nn]$ ]]; then
-        WEEKLY_SCAN_DIRS=("${DAILY_SCAN_DIRS[@]}")
-        echo -e "${YELLOW}⚠️  Weekly scan will use same directories as daily${NC}"
-    fi
-    echo ""
-    
-    # Monthly scan option
-    echo -e "${YELLOW}Monthly Scan (full system):${NC}"
-    echo -e "Current: ${MONTHLY_SCAN_DIRS[*]}"
-    read -p "Include system temp directories (/tmp, /var/tmp)? (Y/n): " -n 1 -r
-    echo ""
-    if [[ $REPLY =~ ^[Nn]$ ]]; then
-        MONTHLY_SCAN_DIRS=("$HOME")
-        echo -e "${YELLOW}⚠️  Monthly scan will only scan home directory${NC}"
-    fi
-    
-    press_enter_to_continue
-}
-
-configure_notifications() {
-    show_menu_header
-    echo -e "${GREEN}🔔 Notification Settings${NC}"
-    echo ""
-    
-    read -p "Enable desktop notifications? (Y/n): " -n 1 -r
-    echo ""
-    if [[ $REPLY =~ ^[Nn]$ ]]; then
-        NOTIFICATIONS_ENABLED=false
-        echo -e "${YELLOW}📵 Notifications disabled${NC}"
-    else
-        NOTIFICATIONS_ENABLED=true
-        echo -e "${GREEN}🔔 Notifications enabled${NC}"
-        echo ""
-        echo -e "${YELLOW}Notification urgency level:${NC}"
-        echo -e "${CYAN}1)${NC} Low (quiet notifications)"
-        echo -e "${CYAN}2)${NC} Normal (standard notifications)"
-        echo -e "${CYAN}3)${NC} Critical (urgent notifications)"
-        echo ""
-        read -p "Choose urgency level (1-3, default 2): " urgency_choice
-        
-        case $urgency_choice in
-            1) NOTIFICATION_URGENCY="low" ;;
-            3) NOTIFICATION_URGENCY="critical" ;;
-            *) NOTIFICATION_URGENCY="normal" ;;
-        esac
-        echo -e "${GREEN}✅ Notification urgency set to: $NOTIFICATION_URGENCY${NC}"
-    fi
-    
-    press_enter_to_continue
-}
-
-configure_scanning_preferences() {
-    show_menu_header
-    echo -e "${GREEN}⚙️ Scanning Preferences${NC}"
-    echo ""
-    
-    read -p "Update virus definitions before each scan? (Y/n): " -n 1 -r
-    echo ""
-    if [[ $REPLY =~ ^[Nn]$ ]]; then
-        UPDATE_BEFORE_SCAN=false
-        echo -e "${YELLOW}⚠️  Auto-update disabled${NC}"
-    else
-        UPDATE_BEFORE_SCAN=true
-        echo -e "${GREEN}✅ Auto-update enabled${NC}"
-    fi
-    echo ""
-    
-    read -p "Show real-time scan feedback? (Y/n): " -n 1 -r
-    echo ""
-    if [[ $REPLY =~ ^[Nn]$ ]]; then
-        REAL_TIME_FEEDBACK=false
-        echo -e "${YELLOW}📊 Real-time feedback disabled${NC}"
-    else
-        REAL_TIME_FEEDBACK=true
-        echo -e "${GREEN}📊 Real-time feedback enabled${NC}"
-    fi
-    
-    press_enter_to_continue
-}
-
-configure_log_management() {
-    show_menu_header
-    echo -e "${GREEN}📂 Log Management Settings${NC}"
-    echo ""
-    
-    read -p "Automatically cleanup old logs? (y/N): " -n 1 -r
-    echo ""
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        AUTO_CLEANUP_LOGS=true
-        echo -e "${GREEN}🧹 Auto-cleanup enabled${NC}"
-        echo ""
-        read -p "Keep logs for how many days? (default 30): " log_days
-        if [[ "$log_days" =~ ^[0-9]+$ && "$log_days" -gt 0 ]]; then
-            MAX_LOG_AGE_DAYS=$log_days
-        else
-            MAX_LOG_AGE_DAYS=30
-        fi
-        echo -e "${GREEN}✅ Logs will be kept for $MAX_LOG_AGE_DAYS days${NC}"
-    else
-        AUTO_CLEANUP_LOGS=false
-        echo -e "${YELLOW}📦 Auto-cleanup disabled - logs will be kept indefinitely${NC}"
-    fi
-    
-    press_enter_to_continue
-}
-
-configure_display_settings() {
-    show_menu_header
-    echo -e "${GREEN}🎨 Display & UI Settings${NC}"
-    echo ""
-    
-    read -p "Use colored output? (Y/n): " -n 1 -r
-    echo ""
-    if [[ $REPLY =~ ^[Nn]$ ]]; then
-        USE_COLORS=false
-        echo -e "Colors disabled"
-    else
-        USE_COLORS=true
-        echo -e "${GREEN}✅ Colors enabled${NC}"
-    fi
-    echo ""
-    
-    read -p "Show progress indicators? (Y/n): " -n 1 -r
-    echo ""
-    if [[ $REPLY =~ ^[Nn]$ ]]; then
-        PROGRESS_INDICATORS=false
-        echo -e "${YELLOW}📊 Progress indicators disabled${NC}"
-    else
-        PROGRESS_INDICATORS=true
-        echo -e "${GREEN}📊 Progress indicators enabled${NC}"
-    fi
-    
-    press_enter_to_continue
-}
-
-review_all_settings() {
-    show_menu_header
-    echo -e "${GREEN}📋 Current Configuration Review${NC}"
-    echo ""
-    
-    echo -e "${CYAN}Security Tools:${NC} ${SELECTED_TOOLS[*]}"
-    echo -e "${CYAN}Daily Scan Dirs:${NC} ${DAILY_SCAN_DIRS[*]}"
-    echo -e "${CYAN}Weekly Scan Dirs:${NC} ${WEEKLY_SCAN_DIRS[*]}"
-    echo -e "${CYAN}Monthly Scan Dirs:${NC} ${MONTHLY_SCAN_DIRS[*]}"
-    echo -e "${CYAN}Notifications:${NC} $NOTIFICATIONS_ENABLED (urgency: $NOTIFICATION_URGENCY)"
-    echo -e "${CYAN}Update Before Scan:${NC} $UPDATE_BEFORE_SCAN"
-    echo -e "${CYAN}Real-time Feedback:${NC} $REAL_TIME_FEEDBACK"
-    echo -e "${CYAN}Auto-cleanup Logs:${NC} $AUTO_CLEANUP_LOGS (keep $MAX_LOG_AGE_DAYS days)"
-    echo -e "${CYAN}Use Colors:${NC} $USE_COLORS"
-    echo -e "${CYAN}Progress Indicators:${NC} $PROGRESS_INDICATORS"
-    echo -e "${CYAN}Automated Scheduling:${NC} $ENABLE_SCHEDULING"
-    if [ "$ENABLE_SCHEDULING" = "true" ]; then
-        echo -e "${CYAN}  Daily:${NC} $DAILY_TIME"
-        echo -e "${CYAN}  Weekly:${NC} $WEEKLY_DAY at $WEEKLY_TIME"
-        echo -e "${CYAN}  Monthly:${NC} Day $MONTHLY_DAY at $MONTHLY_TIME"
-    fi
-    echo ""
-    
-    read -p "Settings look good? (Y/n): " -n 1 -r
-    echo ""
-    if [[ $REPLY =~ ^[Nn]$ ]]; then
-        echo -e "${YELLOW}You can modify settings using the menu options.${NC}"
-    else
-        echo -e "${GREEN}✅ Configuration confirmed!${NC}"
-    fi
-    
-    press_enter_to_continue
-}
-
-use_default_settings() {
-    show_menu_header
-    echo -e "${GREEN}⚡ Using Default Settings (Quick Setup)${NC}"
-    echo ""
-    echo -e "${YELLOW}Default configuration:${NC}"
-    echo -e "• All security tools (ClamAV, rkhunter, chkrootkit, Lynis)"
-    echo -e "• Standard scan directories"
-    echo -e "• Notifications enabled"
-    echo -e "• Auto-update enabled"
-    echo -e "• Real-time feedback enabled"
-    echo -e "• Manual log cleanup"
-    echo -e "• Colors and progress indicators enabled"
-    echo -e "• Manual scheduling (no automatic scans)"
-    echo ""
-    
-    SELECTED_TOOLS=("clamav" "rkhunter" "chkrootkit" "lynis")
-    ENABLE_SCHEDULING=false
-    echo -e "${GREEN}✅ Default settings applied!${NC}"
-    press_enter_to_continue
-}
-
-# Generate systemd service with dynamic paths
-generate_systemd_service() {
-    local service_name="$1"
-    local script_name="$2"
-    local description="$3"
-    local service_file="$HOME/.config/systemd/user/${service_name}.service"
-    
-    # Validate paths before generation
-    local script_path="$SECURITY_SUITE_HOME/scripts/$script_name"
-    validate_path "$script_path" "Script path" || return 1
-    
-    # Ensure systemd user directory exists
-    mkdir -p "$HOME/.config/systemd/user"
-    
-    cat > "$service_file" << EOF
-[Unit]
-Description=$description
-After=network-online.target
-
-[Service]
-Type=oneshot
-ExecStart=$script_path
-WorkingDirectory=$SECURITY_SUITE_HOME/scripts
-StandardOutput=journal
-StandardError=journal
-Environment=USER=$CURRENT_USER
-Environment=HOME=$CURRENT_HOME
-Environment=SECURITY_SUITE_HOME=$SECURITY_SUITE_HOME
-
-[Install]
-WantedBy=default.target
-EOF
-    
-    chmod 644 "$service_file"
-    show_success "Created $service_name service"
-}
-
-# Generate systemd timer
-generate_systemd_timer() {
-    local timer_name="$1"
-    local service_name="$2"
-    local description="$3"
-    local schedule="$4"
-    local timer_file="$HOME/.config/systemd/user/${timer_name}.timer"
-    
-    cat > "$timer_file" << EOF
-[Unit]
-Description=$description
-Requires=$service_name.service
-
-[Timer]
-OnCalendar=$schedule
-Persistent=true
-
-[Install]
-WantedBy=timers.target
-EOF
-    
-    chmod 644 "$timer_file"
-    show_success "Created $timer_name timer"
-}
-
-# Generate systemd user timers
-generate_systemd_timers() {
-    if [ "$ENABLE_SCHEDULING" != "true" ]; then
-        return 0
-    fi
-    
-    show_progress "Creating systemd user timer configuration"
-    
-    # Validate security suite home directory
-    validate_path "$SECURITY_SUITE_HOME" "Security suite home" || return 1
-    
-    # Create daily scan service and timer
-    generate_systemd_service "security-daily-scan" "security-daily-scan.sh" "Daily Security Scan"
-    generate_systemd_timer "security-daily-scan" "security-daily-scan" "Daily Security Scan Timer" "*-*-* $DAILY_TIME:00"
-    
-    # Create weekly scan service and timer
-    generate_systemd_service "security-weekly-scan" "security-weekly-scan.sh" "Weekly Security Scan"
-    generate_systemd_timer "security-weekly-scan" "security-weekly-scan" "Weekly Security Scan Timer" "$WEEKLY_DAY *-*-* $WEEKLY_TIME:00"
-    
-    # Create monthly scan service and timer
-    generate_systemd_service "security-monthly-scan" "security-monthly-scan.sh" "Monthly Security Scan"
-    generate_systemd_timer "security-monthly-scan" "security-monthly-scan" "Monthly Security Scan Timer" "*-*-$MONTHLY_DAY $MONTHLY_TIME:00"
-    
-    show_success "Systemd timer configuration created"
-}
-
-# Enable systemd timers
-enable_systemd_timers() {
-    if [ "$ENABLE_SCHEDULING" != "true" ]; then
-        return 0
-    fi
-    
-    show_progress "Enabling and starting systemd timers"
-    
-    # Reload systemd user configuration
-    systemctl --user daemon-reload
-    
-    # Enable and start timers
-    systemctl --user enable --now security-daily-scan.timer
-    systemctl --user enable --now security-weekly-scan.timer
-    systemctl --user enable --now security-monthly-scan.timer
-    
-    # Enable linger so timers work when user is logged out
-    read -p "Enable timers to run even when you're logged out? (Y/n): " -n 1 -r
-    echo ""
-    if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-        # Validate username before using sudo
-        if [[ ! "$CURRENT_USER" =~ ^[a-zA-Z0-9_-]+$ ]]; then
-            show_error "Invalid username format: $CURRENT_USER"
-            return 1
-        fi
-        
-        sudo loginctl enable-linger "$CURRENT_USER"
-        echo -e "${GREEN}✅ User linger enabled for $CURRENT_USER - timers will run when logged out${NC}"
-    fi
-    
-    show_success "Automated scheduling configured and enabled"
-}
-
-# Comprehensive final test
-run_comprehensive_final_test() {
-    echo ""
-    echo -e "${CYAN}================================================================${NC}"
-    echo -e "${WHITE}      🧪 COMPREHENSIVE FINAL SYSTEM TEST 🧪${NC}"
-    echo -e "${CYAN}================================================================${NC}"
-    echo -e "${BLUE}Starting comprehensive validation of entire security suite...${NC}"
-    echo ""
-    
-    local test_timestamp=$(date +"%Y%m%d_%H%M%S")
-    local final_test_log="$SECURITY_SUITE_HOME/logs/manual/final_test_${test_timestamp}.log"
-    local test_failures=0
-    
-    # Ensure log directory exists before writing
-    mkdir -p "$SECURITY_SUITE_HOME/logs/manual"
-    
-    echo "COMPREHENSIVE SECURITY SUITE TEST - $(date)" > "$final_test_log"
-    echo "=======================================" >> "$final_test_log"
-    echo "" >> "$final_test_log"
-    
-    # Test 1: Directory Structure
-    echo -e "${YELLOW}📁 Testing directory structure...${NC}"
-    local required_dirs=("scripts" "logs" "configs" "backups" "logs/daily" "logs/weekly" "logs/monthly" "logs/manual")
-    for dir in "${required_dirs[@]}"; do
-        if [ -d "$SECURITY_SUITE_HOME/$dir" ]; then
-            echo -e "  ${GREEN}✅ $dir${NC}"
-            echo "✅ Directory exists: $dir" >> "$final_test_log"
-        else
-            echo -e "  ${RED}❌ $dir${NC}"
-            echo "❌ Directory missing: $dir" >> "$final_test_log"
-            ((test_failures++))
-        fi
-    done
-    echo ""
-    
-    # Test 2: Configuration Files
-    echo -e "${YELLOW}📄 Testing configuration files...${NC}"
-    local config_files=("configs/security-config.conf" "scripts/notification-functions.sh")
-    for file in "${config_files[@]}"; do
-        if [ -f "$SECURITY_SUITE_HOME/$file" ]; then
-            echo -e "  ${GREEN}✅ $file${NC}"
-            echo "✅ Configuration file exists: $file" >> "$final_test_log"
-        else
-            echo -e "  ${RED}❌ $file${NC}"
-            echo "❌ Configuration file missing: $file" >> "$final_test_log"
-            ((test_failures++))
-        fi
-    done
-    echo ""
-    
-    # Test 3: Security Scripts
-    echo -e "${YELLOW}🔧 Testing security scripts...${NC}"
-    local scripts=("security-daily-scan.sh" "security-weekly-scan.sh" "security-monthly-scan.sh" "security-test.sh")
-    for script in "${scripts[@]}"; do
-        if [ -x "$SECURITY_SUITE_HOME/scripts/$script" ]; then
-            echo -e "  ${GREEN}✅ $script (executable)${NC}"
-            echo "✅ Script exists and executable: $script" >> "$final_test_log"
-        else
-            echo -e "  ${RED}❌ $script${NC}"
-            echo "❌ Script missing or not executable: $script" >> "$final_test_log"
-            ((test_failures++))
-        fi
-    done
-    echo ""
-    
-    # Test 4: Security Tools
-    echo -e "${YELLOW}🛡️  Testing security tools...${NC}"
-    for tool in "${SELECTED_TOOLS[@]}"; do
-        if command -v "$tool" &>/dev/null || pacman -Qi "$tool" &>/dev/null; then
-            echo -e "  ${GREEN}✅ $tool (installed and available)${NC}"
-            echo "✅ Security tool available: $tool" >> "$final_test_log"
-        else
-            echo -e "  ${RED}❌ $tool (not found)${NC}"
-            echo "❌ Security tool missing: $tool" >> "$final_test_log"
-            ((test_failures++))
-        fi
-    done
-    echo ""
-    
-    # Test 5: EICAR Antivirus Test
-    echo -e "${YELLOW}🦠 Running EICAR antivirus test...${NC}"
-    local eicar_test_dir="/tmp/final-eicar-test-$$"
-    mkdir -p "$eicar_test_dir"
-    cd "$eicar_test_dir"
-    
-    # Create EICAR test file
-    echo 'X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*' > eicar_final.com
-    
-    if command -v clamscan &>/dev/null; then
-        local eicar_result=$(clamscan eicar_final.com 2>&1)
-        if echo "$eicar_result" | grep -q "FOUND"; then
-            echo -e "  ${GREEN}✅ ClamAV correctly detected EICAR signature${NC}"
-            echo "✅ ClamAV EICAR test: PASSED" >> "$final_test_log"
-        else
-            echo -e "  ${YELLOW}⚠️  ClamAV did not detect EICAR signature${NC}"
-            echo "⚠️  ClamAV EICAR test: FAILED" >> "$final_test_log"
-            ((test_failures++))
-        fi
-    else
-        echo -e "  ${RED}❌ ClamAV not available for testing${NC}"
-        echo "❌ ClamAV not available" >> "$final_test_log"
-        ((test_failures++))
-    fi
-    
-    cd "$HOME"
-    rm -rf "$eicar_test_dir"
-    echo ""
-    
-    # Test 6: Systemd Timers (if enabled)
-    if [ "$ENABLE_SCHEDULING" = "true" ]; then
-        echo -e "${YELLOW}⏰ Testing systemd timers...${NC}"
-        local timers=("security-daily-scan.timer" "security-weekly-scan.timer" "security-monthly-scan.timer")
-        for timer in "${timers[@]}"; do
-            if systemctl --user is-enabled "$timer" &>/dev/null; then
-                echo -e "  ${GREEN}✅ $timer (enabled)${NC}"
-                echo "✅ Timer enabled: $timer" >> "$final_test_log"
+            show_progress "Installing security tools"
+            if sudo pacman -Sy --needed --noconfirm "${missing_security_tools[@]}"; then
+                show_success "Security tools installed"
             else
-                echo -e "  ${YELLOW}⚠️  $timer (not enabled)${NC}"
-                echo "⚠️  Timer not enabled: $timer" >> "$final_test_log"
+                show_error "Failed to install security tools"
+                return 1
             fi
-        done
-        echo ""
-    fi
-    
-    # Test 7: Notification System
-    echo -e "${YELLOW}🔔 Testing notification system...${NC}"
-    if command -v notify-send &>/dev/null; then
-        notify-send "🧪 Security Suite Test" "Final test notification - ignore this message" 2>/dev/null
-        echo -e "  ${GREEN}✅ Desktop notifications available${NC}"
-        echo "✅ Notification system: Available" >> "$final_test_log"
-    else
-        echo -e "  ${YELLOW}⚠️  Desktop notifications not available${NC}"
-        echo "⚠️  Notification system: Not available" >> "$final_test_log"
-    fi
-    echo ""
-    
-    # Final Test Results
-    echo -e "${CYAN}================================================================${NC}"
-    echo -e "${WHITE}      📊 COMPREHENSIVE TEST RESULTS 📊${NC}"
-    echo -e "${CYAN}================================================================${NC}"
-    
-    if [ "$test_failures" -eq 0 ]; then
-        echo -e "${GREEN}🎉 ALL TESTS PASSED! Your security suite is fully functional!${NC}"
-        echo "🎉 FINAL RESULT: ALL TESTS PASSED" >> "$final_test_log"
-        
-        if [ "$NOTIFICATIONS_ENABLED" = "true" ]; then
-            notify-send "🎉 Security Suite Ready!" "All tests passed - Your system is fully protected!" "security-high" "normal" 2>/dev/null
-        fi
-        
-    else
-        echo -e "${YELLOW}⚠️  $test_failures test(s) failed. Review the issues above.${NC}"
-        echo "⚠️  FINAL RESULT: $test_failures test(s) failed" >> "$final_test_log"
-        
-        if [ "$NOTIFICATIONS_ENABLED" = "true" ]; then
-            notify-send "⚠️ Security Suite Issues" "$test_failures test(s) failed - Review setup" "security-medium" "normal" 2>/dev/null
         fi
     fi
     
-    echo -e "${BLUE}📂 Complete test log saved to: $(basename "$final_test_log")${NC}"
-    echo -e "${CYAN}================================================================${NC}"
-    echo ""
+    return 0
 }
 
-# Start the complete setup process
-clear
-echo -e "${CYAN}================================================================${NC}"
-echo -e "${WHITE}      🛡️ COMPLETE SECURITY SUITE V5.0 SETUP 🛡️${NC}"
-echo -e "${CYAN}================================================================${NC}"
-echo ""
-
-# Check for existing installation first
-check_existing_installation
-
-# Check security tools status
-check_security_tools_status
-
-# Ask about configuration
-echo -e "${BLUE}🚀 Let's configure your complete security suite!${NC}"
-echo ""
-read -p "Do you want to customize settings or use defaults? (c/D): " -n 1 -r
-echo ""
-
-if [[ $REPLY =~ ^[Cc]$ ]]; then
-    main_configuration_menu
-else
-    echo -e "${GREEN}✅ Using default settings for quick setup${NC}"
+# Check Python dependencies for web dashboard
+check_python_dependencies() {
+    echo -e "${BLUE}🔍 Checking Python dependencies...${NC}"
     echo ""
-fi
+    
+    if ! command -v python3 &>/dev/null; then
+        show_error "Python 3 is required but not installed"
+        return 1
+    fi
+    
+    if ! command -v pip3 &>/dev/null && ! command -v pip &>/dev/null; then
+        show_error "pip3/pip is required but not installed"
+        return 1
+    fi
+    
+    local python_deps=("flask" "sqlite3" "requests" "psutil")
+    local missing_python_deps=()
+    
+    for dep in "${python_deps[@]}"; do
+        if python3 -c "import $dep" &>/dev/null; then
+            echo -e "${GREEN}✅ Python module: $dep - Available${NC}"
+        else
+            echo -e "${YELLOW}⏳ Python module: $dep - Not installed${NC}"
+            missing_python_deps+=("$dep")
+        fi
+    done
+    
+    echo ""
+    
+    if [ ${#missing_python_deps[@]} -gt 0 ]; then
+        echo -e "${YELLOW}Missing Python modules: ${missing_python_deps[*]}${NC}"
+        read -p "Install missing Python modules? (Y/n): " -n 1 -r
+        echo ""
+        if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+            show_progress "Installing Python modules"
+            if command -v pip3 &>/dev/null; then
+                pip3 install "${missing_python_deps[@]}"
+            else
+                pip install "${missing_python_deps[@]}"
+            fi
+            if [ $? -eq 0 ]; then
+                show_success "Python modules installed"
+            else
+                show_error "Failed to install Python modules"
+                return 1
+            fi
+        fi
+    fi
+    
+    return 0
+}
 
-# Create directory structure
-show_progress "Creating organized directory structure"
-mkdir -p "$SECURITY_SUITE_HOME"/{scripts,logs,configs,backups}
-mkdir -p "$SECURITY_SUITE_HOME/scripts/generated-${SETUP_DATE}"
-mkdir -p "$SECURITY_SUITE_HOME/logs"/{daily,weekly,monthly,manual}
+# Menu-driven installation options
+show_installation_menu() {
+    clear
+    echo -e "${CYAN}================================================================${NC}"
+    echo -e "${WHITE}      🛡️ SECURITY SUITE INSTALLATION OPTIONS 🛡️${NC}"
+    echo -e "${CYAN}================================================================${NC}"
+    echo ""
+    echo -e "${GREEN}Choose your installation type:${NC}"
+    echo ""
+    echo -e "${CYAN}1)${NC} Core Security Suite (Basic)"
+    echo -e "   • Essential security tools (ClamAV, rkhunter, chkrootkit)"
+    echo -e "   • Basic scanning scripts"
+    echo -e "   • Configuration management"
+    echo ""
+    echo -e "${CYAN}2)${NC} Complete Security Suite (Recommended)"
+    echo -e "   • All security tools including Lynis"
+    echo -e "   • Web Dashboard with Python virtual environment"
+    echo -e "   • Behavioral Analysis with service and timer"
+    echo -e "   • Incident Response System"
+    echo -e "   • Threat Intelligence Integration"
+    echo -e "   • Automated scheduling"
+    echo ""
+    echo -e "${CYAN}3)${NC} Web Dashboard Only"
+    echo -e "   • Python Flask web dashboard"
+    echo -e "   • Real-time monitoring interface"
+    echo -e "   • API endpoints for system integration"
+    echo ""
+    echo -e "${CYAN}4)${NC} Custom Installation"
+    echo -e "   • Choose individual components"
+    echo -e "   • Flexible configuration"
+    echo ""
+    echo -e "${CYAN}5)${NC} Update Existing Installation"
+    echo -e "   • Update scripts and configurations"
+    echo -e "   • Preserve existing data"
+    echo ""
+    echo -e "${CYAN}0)${NC} Exit"
+    echo ""
+    
+    while true; do
+        read -p "Enter your choice (0-5): " choice
+        case $choice in
+            1)
+                INSTALLATION_TYPE="core"
+                INSTALLATION_COMPONENTS=("security-tools" "basic-scripts" "config-management")
+                return 0
+                ;;
+            2)
+                INSTALLATION_TYPE="complete"
+                INSTALLATION_COMPONENTS=("security-tools" "web-dashboard" "behavioral-analysis" "incident-response" "threat-intelligence" "scheduling")
+                return 0
+                ;;
+            3)
+                INSTALLATION_TYPE="web-dashboard"
+                INSTALLATION_COMPONENTS=("web-dashboard")
+                return 0
+                ;;
+            4)
+                INSTALLATION_TYPE="custom"
+                show_custom_component_menu
+                return 0
+                ;;
+            5)
+                INSTALLATION_TYPE="update"
+                INSTALLATION_COMPONENTS=("update")
+                return 0
+                ;;
+            0)
+                echo -e "${BLUE}👋 Exiting setup${NC}"
+                exit 0
+                ;;
+            *)
+                echo -e "${RED}Invalid choice. Please enter 0-5.${NC}"
+                ;;
+        esac
+    done
+}
 
-# Create configuration file with user settings
-show_progress "Creating configuration file with your settings"
-cat > "$SECURITY_SUITE_HOME/configs/security-config.conf" << CONFIG_END
-# Security Suite Configuration
+# Custom component selection menu
+show_custom_component_menu() {
+    clear
+    echo -e "${CYAN}================================================================${NC}"
+    echo -e "${WHITE}      🔧 CUSTOM COMPONENT SELECTION 🔧${NC}"
+    echo -e "${CYAN}================================================================${NC}"
+    echo ""
+    echo -e "${GREEN}Select components to install:${NC}"
+    echo ""
+    
+    local components=(
+        "security-tools:Security scanning tools (ClamAV, rkhunter, chkrootkit, Lynis)"
+        "web-dashboard:Python Flask web dashboard"
+        "behavioral-analysis:Behavioral monitoring and analysis"
+        "incident-response:Incident response system"
+        "threat-intelligence:Threat intelligence integration"
+        "scheduling:Automated scanning schedules"
+    )
+    
+    INSTALLATION_COMPONENTS=()
+    
+    for component in "${components[@]}"; do
+        local name=$(echo "$component" | cut -d: -f1)
+        local desc=$(echo "$component" | cut -d: -f2)
+        
+        read -p "Install $desc? (Y/n): " -n 1 -r
+        echo ""
+        if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+            INSTALLATION_COMPONENTS+=("$name")
+            echo -e "${GREEN}✅ $name selected${NC}"
+        else
+            echo -e "${YELLOW}⏭️  $name skipped${NC}"
+        fi
+        echo ""
+    done
+    
+    if [ ${#INSTALLATION_COMPONENTS[@]} -eq 0 ]; then
+        echo -e "${RED}❌ No components selected${NC}"
+        exit 1
+    fi
+    
+    echo -e "${GREEN}Selected components: ${INSTALLATION_COMPONENTS[*]}${NC}"
+}
+
+# Component installation functions
+
+# Install security tools
+install_security_tools() {
+    show_progress "Installing security tools component"
+    
+    # Check dependencies first
+    check_security_tools_dependencies || return 1
+    
+    # Create directory structure
+    mkdir -p "$SECURITY_SUITE_HOME"/{scripts,logs,configs,backups}
+    mkdir -p "$SECURITY_SUITE_HOME/logs"/{daily,weekly,monthly,manual}
+    mkdir -p "$SECURITY_SUITE_HOME/scripts/scanners"
+    
+    # Install scanner scripts
+    local scanners=("clamav-scanner.sh" "rkhunter-scanner.sh")
+    for scanner in "${scanners[@]}"; do
+        if [ -f "$SCRIPT_DIR/scanners/$scanner" ]; then
+            cp "$SCRIPT_DIR/scanners/$scanner" "$SECURITY_SUITE_HOME/scripts/scanners/"
+            chmod +x "$SECURITY_SUITE_HOME/scripts/scanners/$scanner"
+            show_success "Installed $scanner"
+        fi
+    done
+    
+    # Create main security scripts
+    create_security_scan_scripts
+    
+    # Create configuration template
+    create_security_config_template
+    
+    show_success "Security tools component installed"
+    return 0
+}
+
+# Install web dashboard
+install_web_dashboard() {
+    show_progress "Installing web dashboard component"
+    
+    # Check Python dependencies
+    check_python_dependencies || return 1
+    
+    # Create Python virtual environment
+    local venv_path="$SECURITY_SUITE_HOME/web-dashboard/venv"
+    mkdir -p "$SECURITY_SUITE_HOME/web-dashboard"
+    
+    if [ ! -d "$venv_path" ]; then
+        python3 -m venv "$venv_path"
+        show_success "Created Python virtual environment"
+    fi
+    
+    # Activate virtual environment and install requirements
+    source "$venv_path/bin/activate"
+    
+    if [ -f "$SCRIPT_DIR/../web-dashboard/requirements.txt" ]; then
+        if command -v pip3 &>/dev/null; then
+            pip3 install -r "$SCRIPT_DIR/../web-dashboard/requirements.txt"
+        else
+            pip install -r "$SCRIPT_DIR/../web-dashboard/requirements.txt"
+        fi
+        show_success "Installed Python requirements"
+    else
+        # Install basic requirements
+        if command -v pip3 &>/dev/null; then
+            pip3 install flask sqlite3 requests psutil
+        else
+            pip install flask sqlite3 requests psutil
+        fi
+        show_success "Installed basic Python requirements"
+    fi
+    
+    # Copy web dashboard files
+    if [ -d "$SCRIPT_DIR/../web-dashboard" ]; then
+        cp -r "$SCRIPT_DIR/../web-dashboard"/* "$SECURITY_SUITE_HOME/web-dashboard/"
+        show_success "Copied web dashboard files"
+    fi
+    
+    # Create dashboard configuration
+    create_dashboard_config
+    
+    # Install systemd service
+    install_dashboard_service
+    
+    # Create API endpoints
+    create_dashboard_api
+    
+    show_success "Web dashboard component installed"
+    return 0
+}
+
+# Install behavioral analysis
+install_behavioral_analysis() {
+    show_progress "Installing behavioral analysis component"
+    
+    # Create behavioral analysis directories
+    mkdir -p "$SECURITY_SUITE_HOME/configs/behavioral_analysis"
+    mkdir -p "$SECURITY_SUITE_HOME/logs/behavioral"
+    
+    # Copy behavioral analysis scripts
+    if [ -f "$SCRIPT_DIR/behavioral-analysis-optimized.sh" ]; then
+        cp "$SCRIPT_DIR/behavioral-analysis-optimized.sh" "$SECURITY_SUITE_HOME/scripts/"
+        chmod +x "$SECURITY_SUITE_HOME/scripts/behavioral-analysis-optimized.sh"
+        show_success "Installed behavioral analysis script"
+    fi
+
+    if [ -f "$SCRIPT_DIR/behavioral-monitor-optimized.sh" ]; then
+        cp "$SCRIPT_DIR/behavioral-monitor-optimized.sh" "$SECURITY_SUITE_HOME/scripts/"
+        chmod +x "$SECURITY_SUITE_HOME/scripts/behavioral-monitor-optimized.sh"
+        show_success "Installed behavioral monitor script"
+    fi
+    
+    # Create behavioral analysis configuration
+    create_behavioral_config
+    
+    # Install systemd service and timer
+    install_behavioral_service
+    
+    show_success "Behavioral analysis component installed"
+    return 0
+}
+
+# Install incident response
+install_incident_response() {
+    show_progress "Installing incident response component"
+    
+    # Create incident response directories
+    mkdir -p "$SECURITY_SUITE_HOME/configs/incident_response"
+    mkdir -p "$SECURITY_SUITE_HOME/logs/incidents"
+    mkdir -p "$SECURITY_SUITE_HOME/evidence"
+    
+    # Copy incident response scripts
+    if [ -f "$SCRIPT_DIR/incident-response.sh" ]; then
+        cp "$SCRIPT_DIR/incident-response.sh" "$SECURITY_SUITE_HOME/scripts/"
+        chmod +x "$SECURITY_SUITE_HOME/scripts/incident-response.sh"
+        show_success "Installed incident response script"
+    fi
+    
+    # Create incident response configuration
+    create_incident_response_config
+    
+    show_success "Incident response component installed"
+    return 0
+}
+
+# Install threat intelligence
+install_threat_intelligence() {
+    show_progress "Installing threat intelligence component"
+    
+    # Create threat intelligence directories
+    mkdir -p "$SECURITY_SUITE_HOME/configs/threat_intelligence"
+    mkdir -p "$SECURITY_SUITE_HOME/configs/threat_intelligence/cache"
+    mkdir -p "$SECURITY_SUITE_HOME/logs/threat_intelligence"
+    
+    # Copy threat intelligence scripts
+    if [ -f "$SCRIPT_DIR/threat-intelligence-optimized.sh" ]; then
+        cp "$SCRIPT_DIR/threat-intelligence-optimized.sh" "$SECURITY_SUITE_HOME/scripts/"
+        chmod +x "$SECURITY_SUITE_HOME/scripts/threat-intelligence-optimized.sh"
+        show_success "Installed threat intelligence script"
+    fi
+    
+    # Create threat intelligence configuration
+    create_threat_intelligence_config
+    
+    show_success "Threat intelligence component installed"
+    return 0
+}
+
+# Install scheduling
+install_scheduling() {
+    show_progress "Installing scheduling component"
+    
+    # Create systemd timers for automated scanning
+    create_systemd_timers
+    
+    # Enable timers
+    enable_systemd_timers
+    
+    show_success "Scheduling component installed"
+    return 0
+}
+
+# Configuration management functions
+
+# Create security configuration template
+create_security_config_template() {
+    local config_file="$SECURITY_SUITE_HOME/configs/security-config.conf"
+    
+    cat > "$config_file" << EOF
+# Security Suite Configuration Template
 # Generated on: $SETUP_TIMESTAMP
-# Interactive Configuration: User Customized
 
 # Dynamic path configuration
 SECURITY_SUITE_HOME="$SECURITY_SUITE_HOME"
@@ -932,83 +652,916 @@ BACKUPS_DIR="\$SECURITY_SUITE_HOME/backups"
 CURRENT_USER="$CURRENT_USER"
 CURRENT_HOME="$CURRENT_HOME"
 
-# Notification settings
-NOTIFICATIONS_ENABLED=$NOTIFICATIONS_ENABLED
-NOTIFICATION_URGENCY="$NOTIFICATION_URGENCY"
+# Security tools configuration
+CLAMAV_ENABLED=true
+RKHUNTER_ENABLED=true
+CHKROOTKIT_ENABLED=true
+LYNIS_ENABLED=true
 
 # Scanning preferences
-UPDATE_BEFORE_SCAN=$UPDATE_BEFORE_SCAN
-REAL_TIME_FEEDBACK=$REAL_TIME_FEEDBACK
-AUTO_CLEANUP_LOGS=$AUTO_CLEANUP_LOGS
-MAX_LOG_AGE_DAYS=$MAX_LOG_AGE_DAYS
+UPDATE_BEFORE_SCAN=true
+REAL_TIME_FEEDBACK=true
+AUTO_CLEANUP_LOGS=false
+MAX_LOG_AGE_DAYS=30
 
-# Color preferences
-USE_COLORS=$USE_COLORS
-PROGRESS_INDICATORS=$PROGRESS_INDICATORS
+# Notification settings
+NOTIFICATIONS_ENABLED=true
+NOTIFICATION_URGENCY="normal"
+
+# Scan directories
+DAILY_SCAN_DIRS=("$HOME/Documents" "$HOME/Downloads" "$HOME/Desktop" "$HOME/.config")
+WEEKLY_SCAN_DIRS=("$HOME")
+MONTHLY_SCAN_DIRS=("$HOME" "/tmp" "/var/tmp")
 
 # Scheduling configuration
-ENABLE_SCHEDULING=$ENABLE_SCHEDULING
-DAILY_TIME="$DAILY_TIME"
-WEEKLY_TIME="$WEEKLY_TIME"
-WEEKLY_DAY="$WEEKLY_DAY"
-MONTHLY_TIME="$MONTHLY_TIME"
-MONTHLY_DAY="$MONTHLY_DAY"
+ENABLE_SCHEDULING=false
+DAILY_TIME="09:00"
+WEEKLY_TIME="10:00"
+WEEKLY_DAY="Mon"
+MONTHLY_TIME="11:00"
+MONTHLY_DAY="1"
+EOF
 
-# Custom scan directories
-DAILY_SCAN_DIRS=(${DAILY_SCAN_DIRS[@]})
-WEEKLY_SCAN_DIRS=(${WEEKLY_SCAN_DIRS[@]})
-MONTHLY_SCAN_DIRS=(${MONTHLY_SCAN_DIRS[@]})
+    chmod 644 "$config_file"
+    show_success "Created security configuration template"
+}
 
-# Selected security tools
-SELECTED_SECURITY_TOOLS=(${SELECTED_TOOLS[@]})
-CONFIG_END
-
-show_success "Configuration file created with your custom settings"
-
-# Install selected security tools with better status reporting
-if [ ${#SELECTED_TOOLS[@]} -gt 0 ]; then
-    show_progress "Checking selected security tools installation"
-    missing_tools=()
-    already_installed=()
+# Create dashboard configuration
+create_dashboard_config() {
+    local config_file="$SECURITY_SUITE_HOME/web-dashboard/config/dashboard.conf"
     
-    for tool in "${SELECTED_TOOLS[@]}"; do
-        if ! pacman -Qi "$tool" &>/dev/null; then
-            missing_tools+=("$tool")
-        else
-            already_installed+=("$tool")
-        fi
-    done
+    mkdir -p "$(dirname "$config_file")"
     
-    if [ ${#already_installed[@]} -gt 0 ]; then
-        echo -e "${GREEN}✅ Already installed: ${already_installed[*]}${NC}"
-    fi
+    cat > "$config_file" << EOF
+# Web Dashboard Configuration
+# Generated on: $SETUP_TIMESTAMP
+
+[dashboard]
+host = 127.0.0.1
+port = 5000
+debug = false
+secret_key = $(python3 -c "import secrets; print(secrets.token_hex(32))")
+
+[database]
+path = $SECURITY_SUITE_HOME/web-dashboard/dashboard.db
+backup_enabled = true
+backup_interval = 24
+
+[security]
+enable_auth = true
+session_timeout = 3600
+max_login_attempts = 5
+
+[logging]
+level = INFO
+file = $SECURITY_SUITE_HOME/logs/dashboard.log
+max_size = 10MB
+backup_count = 5
+EOF
+
+    chmod 644 "$config_file"
+    show_success "Created dashboard configuration"
+}
+
+# Create behavioral analysis configuration
+create_behavioral_config() {
+    local config_file="$SECURITY_SUITE_HOME/configs/behavioral_analysis/config.conf"
     
-    if [ ${#missing_tools[@]} -gt 0 ]; then
-        echo -e "${YELLOW}📦 Need to install: ${missing_tools[*]}${NC}"
-        read -p "🤔 Install missing security tools now? (Y/n): " -n 1 -r
-        echo ""
-        if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-            show_progress "Installing selected security tools"
-            if sudo pacman -Sy --needed --noconfirm "${missing_tools[@]}"; then
-                show_success "Security tools installed successfully"
-            else
-                show_error "Failed to install some security tools"
-                echo -e "${YELLOW}You can install them manually later.${NC}"
-            fi
-        fi
+    cat > "$config_file" << EOF
+# Behavioral Analysis Configuration
+# Generated on: $SETUP_TIMESTAMP
+
+[monitoring]
+enabled = true
+learning_period = 7
+monitoring_interval = 60
+sensitivity_level = medium
+threat_score_threshold = 70
+max_baseline_age = 30
+
+[alerts]
+enabled = true
+notification_methods = ["desktop", "log"]
+alert_cooldown = 300
+
+[baseline]
+auto_update = true
+update_interval = 86400
+min_samples = 100
+EOF
+
+    chmod 644 "$config_file"
+    show_success "Created behavioral analysis configuration"
+}
+
+# Create incident response configuration
+create_incident_response_config() {
+    local config_file="$SECURITY_SUITE_HOME/configs/incident_response/config.conf"
+    
+    cat > "$config_file" << EOF
+# Incident Response Configuration
+# Generated on: $SETUP_TIMESTAMP
+
+[response]
+auto_containment = false
+evidence_preservation = true
+notification_enabled = true
+
+[escalation]
+levels = ["low", "medium", "high", "critical"]
+auto_escalate = true
+escalation_timeout = 3600
+
+[reporting]
+template_path = "$SECURITY_SUITE_HOME/configs/incident_response/templates"
+output_format = ["json", "html"]
+auto_generate = true
+EOF
+
+    chmod 644 "$config_file"
+    show_success "Created incident response configuration"
+}
+
+# Create threat intelligence configuration
+create_threat_intelligence_config() {
+    local config_file="$SECURITY_SUITE_HOME/configs/threat_intelligence/config.conf"
+    
+    cat > "$config_file" << EOF
+# Threat Intelligence Configuration
+# Generated on: $SETUP_TIMESTAMP
+
+[sources]
+enabled_sources = ["virustotal", "alienvault", "hybrid-analysis"]
+update_interval = 3600
+cache_duration = 86400
+
+[api_keys]
+# Add your API keys here
+# virustotal = "your_api_key_here"
+# alienault = "your_api_key_here"
+
+[analysis]
+enable_reputation_checking = true
+enable_ioc_matching = true
+threat_score_threshold = 70
+EOF
+
+    chmod 644 "$config_file"
+    show_success "Created threat intelligence configuration"
+}
+
+# Service installation functions
+
+# Install dashboard service
+install_dashboard_service() {
+    local service_file="$HOME/.config/systemd/user/garuda-dashboard.service"
+    local template_file="$SCRIPT_DIR/web-dashboard/garuda-dashboard.service"
+    
+    mkdir -p "$(dirname "$service_file")"
+    
+    # Use service template processor if available
+    if [ -f "$SCRIPT_DIR/scripts/process-service-template.sh" ]; then
+        "$SCRIPT_DIR/scripts/process-service-template.sh" process "$template_file" "$service_file" "$CURRENT_USER"
     else
-        show_success "All selected security tools are already installed"
+        # Fallback to manual creation
+        cat > "$service_file" << EOF
+[Unit]
+Description=Garuda Security Dashboard
+After=network-online.target
+
+[Service]
+Type=simple
+User=$CURRENT_USER
+WorkingDirectory=$SECURITY_SUITE_HOME/web-dashboard
+ExecStart=$SECURITY_SUITE_HOME/web-dashboard/venv/bin/python app-optimized.py
+Restart=always
+RestartSec=10
+Environment=PYTHONPATH=$SECURITY_SUITE_HOME/web-dashboard
+Environment=FLASK_ENV=production
+
+[Install]
+WantedBy=default.target
+EOF
     fi
-else
-    show_warning "No security tools selected - you'll need to install them manually"
+
+    chmod 644 "$service_file"
+    systemctl --user daemon-reload
+    show_success "Installed dashboard service"
+}
+
+# Install behavioral analysis service
+install_behavioral_service() {
+    local service_file="$HOME/.config/systemd/user/behavioral-monitor.service"
+    local timer_file="$HOME/.config/systemd/user/behavioral-monitor.timer"
+    local template_file="$SCRIPT_DIR/scripts/behavioral-monitor-optimized.service"
+    
+    mkdir -p "$(dirname "$service_file")"
+    
+    # Use service template processor if available
+    if [ -f "$SCRIPT_DIR/scripts/process-service-template.sh" ]; then
+        "$SCRIPT_DIR/scripts/process-service-template.sh" process "$template_file" "$service_file" "$CURRENT_USER"
+    else
+        # Fallback to manual creation
+        cat > "$service_file" << EOF
+[Unit]
+Description=Behavioral Analysis Monitor
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=$SECURITY_SUITE_HOME/scripts/behavioral-monitor-optimized.sh
+WorkingDirectory=$SECURITY_SUITE_HOME/scripts
+StandardOutput=journal
+StandardError=journal
+Environment=USER=$CURRENT_USER
+Environment=HOME=$CURRENT_HOME
+Environment=SECURITY_SUITE_HOME=$SECURITY_SUITE_HOME
+
+[Install]
+WantedBy=default.target
+EOF
+    fi
+
+    # Create timer file
+    cat > "$timer_file" << EOF
+[Unit]
+Description=Behavioral Analysis Monitor Timer
+Requires=behavioral-monitor.service
+
+[Timer]
+OnCalendar=*:*:00/15
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+
+    chmod 644 "$service_file"
+    chmod 644 "$timer_file"
+    systemctl --user daemon-reload
+    show_success "Installed behavioral analysis service and timer"
+}
+
+# Create security scan scripts
+create_security_scan_scripts() {
+    # Create daily scan script
+    cat > "$SECURITY_SUITE_HOME/scripts/security-daily-scan.sh" << 'EOF'
+#!/bin/bash
+# Daily Security Scan Script
+
+# Load configuration
+if [ -f "$SECURITY_SUITE_HOME/configs/security-config.conf" ]; then
+    source "$SECURITY_SUITE_HOME/configs/security-config.conf"
 fi
 
-# Generate notification support functions
-show_progress "Generating notification support functions"
-cat > "$SECURITY_SUITE_HOME/scripts/notification-functions.sh" << 'NOTIF_END'
+# Load notification functions
+if [ -f "$SECURITY_SUITE_HOME/scripts/notification-functions.sh" ]; then
+    source "$SECURITY_SUITE_HOME/scripts/notification-functions.sh"
+fi
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+WHITE='\033[1;37m'
+NC='\033[0m'
+
+echo -e "${CYAN}==========================================${NC}"
+echo -e "${WHITE}  🛡️ Daily Security Scan${NC}"
+echo -e "${CYAN}==========================================${NC}"
+echo -e "${BLUE}Scan started: $(date)${NC}"
+echo ""
+
+# Create log file
+timestamp=$(date +"%Y%m%d_%H%M%S")
+SCAN_LOG="$SECURITY_SUITE_HOME/logs/daily/daily_scan_${timestamp}.log"
+
+echo "Daily Security Scan - $(date)" > "$SCAN_LOG"
+echo "=================================" >> "$SCAN_LOG"
+echo "" >> "$SCAN_LOG"
+
+# Run ClamAV scan if enabled
+if [ "$CLAMAV_ENABLED" = "true" ] && command -v clamscan &>/dev/null; then
+    echo -e "${YELLOW}🦠 Running ClamAV scan...${NC}"
+    for dir in "${DAILY_SCAN_DIRS[@]}"; do
+        if [ -d "$dir" ]; then
+            echo -e "${BLUE}Scanning: $dir${NC}"
+            clamscan -r "$dir" >> "$SCAN_LOG" 2>&1
+        fi
+    done
+    echo -e "${GREEN}✅ ClamAV scan completed${NC}"
+fi
+
+# Run rkhunter if enabled
+if [ "$RKHUNTER_ENABLED" = "true" ] && command -v rkhunter &>/dev/null; then
+    echo -e "${YELLOW}🔍 Running rkhunter scan...${NC}"
+    rkhunter --check --skip-keypress --report-warnings-only >> "$SCAN_LOG" 2>&1
+    echo -e "${GREEN}✅ rkhunter scan completed${NC}"
+fi
+
+echo ""
+echo -e "${GREEN}✅ Daily security scan completed${NC}"
+echo -e "${BLUE}📂 Log saved to: $(basename "$SCAN_LOG")${NC}"
+EOF
+
+    # Create weekly scan script
+    cat > "$SECURITY_SUITE_HOME/scripts/security-weekly-scan.sh" << 'EOF'
+#!/bin/bash
+# Weekly Security Scan Script
+
+# Load configuration
+if [ -f "$SECURITY_SUITE_HOME/configs/security-config.conf" ]; then
+    source "$SECURITY_SUITE_HOME/configs/security-config.conf"
+fi
+
+# Load notification functions
+if [ -f "$SECURITY_SUITE_HOME/scripts/notification-functions.sh" ]; then
+    source "$SECURITY_SUITE_HOME/scripts/notification-functions.sh"
+fi
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+WHITE='\033[1;37m'
+NC='\033[0m'
+
+echo -e "${CYAN}==========================================${NC}"
+echo -e "${WHITE}  🛡️ Weekly Security Scan${NC}"
+echo -e "${CYAN}==========================================${NC}"
+echo -e "${BLUE}Scan started: $(date)${NC}"
+echo ""
+
+# Create log file
+timestamp=$(date +"%Y%m%d_%H%M%S")
+SCAN_LOG="$SECURITY_SUITE_HOME/logs/weekly/weekly_scan_${timestamp}.log"
+
+echo "Weekly Security Scan - $(date)" > "$SCAN_LOG"
+echo "================================" >> "$SCAN_LOG"
+echo "" >> "$SCAN_LOG"
+
+# Run comprehensive scan
+for dir in "${WEEKLY_SCAN_DIRS[@]}"; do
+    if [ -d "$dir" ]; then
+        echo -e "${BLUE}Scanning: $dir${NC}"
+        
+        # ClamAV scan
+        if [ "$CLAMAV_ENABLED" = "true" ] && command -v clamscan &>/dev/null; then
+            clamscan -r "$dir" >> "$SCAN_LOG" 2>&1
+        fi
+        
+        # Additional checks can be added here
+    fi
+done
+
+echo ""
+echo -e "${GREEN}✅ Weekly security scan completed${NC}"
+echo -e "${BLUE}📂 Log saved to: $(basename "$SCAN_LOG")${NC}"
+EOF
+
+    # Create monthly scan script
+    cat > "$SECURITY_SUITE_HOME/scripts/security-monthly-scan.sh" << 'EOF'
+#!/bin/bash
+# Monthly Security Scan Script
+
+# Load configuration
+if [ -f "$SECURITY_SUITE_HOME/configs/security-config.conf" ]; then
+    source "$SECURITY_SUITE_HOME/configs/security-config.conf"
+fi
+
+# Load notification functions
+if [ -f "$SECURITY_SUITE_HOME/scripts/notification-functions.sh" ]; then
+    source "$SECURITY_SUITE_HOME/scripts/notification-functions.sh"
+fi
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+WHITE='\033[1;37m'
+NC='\033[0m'
+
+echo -e "${CYAN}==========================================${NC}"
+echo -e "${WHITE}  🛡️ Monthly Security Scan${NC}"
+echo -e "${CYAN}==========================================${NC}"
+echo -e "${BLUE}Scan started: $(date)${NC}"
+echo ""
+
+# Create log file
+timestamp=$(date +"%Y%m%d_%H%M%S")
+SCAN_LOG="$SECURITY_SUITE_HOME/logs/monthly/monthly_scan_${timestamp}.log"
+
+echo "Monthly Security Scan - $(date)" > "$SCAN_LOG"
+echo "=================================" >> "$SCAN_LOG"
+echo "" >> "$SCAN_LOG"
+
+# Run comprehensive system scan
+for dir in "${MONTHLY_SCAN_DIRS[@]}"; do
+    if [ -d "$dir" ]; then
+        echo -e "${BLUE}Scanning: $dir${NC}"
+        
+        # ClamAV scan
+        if [ "$CLAMAV_ENABLED" = "true" ] && command -v clamscan &>/dev/null; then
+            clamscan -r "$dir" >> "$SCAN_LOG" 2>&1
+        fi
+        
+        # rkhunter scan
+        if [ "$RKHUNTER_ENABLED" = "true" ] && command -v rkhunter &>/dev/null; then
+            rkhunter --check --skip-keypress >> "$SCAN_LOG" 2>&1
+        fi
+        
+        # chkrootkit scan
+        if [ "$CHKROOTKIT_ENABLED" = "true" ] && command -v chkrootkit &>/dev/null; then
+            chkrootkit >> "$SCAN_LOG" 2>&1
+        fi
+        
+        # Lynis audit
+        if [ "$LYNIS_ENABLED" = "true" ] && command -v lynis &>/dev/null; then
+            lynis audit system --quick >> "$SCAN_LOG" 2>&1
+        fi
+    fi
+done
+
+echo ""
+echo -e "${GREEN}✅ Monthly security scan completed${NC}"
+echo -e "${BLUE}📂 Log saved to: $(basename "$SCAN_LOG")${NC}"
+EOF
+
+    # Make scripts executable
+    chmod +x "$SECURITY_SUITE_HOME/scripts/security-daily-scan.sh"
+    chmod +x "$SECURITY_SUITE_HOME/scripts/security-weekly-scan.sh"
+    chmod +x "$SECURITY_SUITE_HOME/scripts/security-monthly-scan.sh"
+    
+    show_success "Created security scan scripts"
+}
+
+# Create systemd timers
+create_systemd_timers() {
+    show_progress "Creating systemd timers"
+    
+    # Create daily timer
+    cat > "$HOME/.config/systemd/user/security-daily-scan.timer" << EOF
+[Unit]
+Description=Daily Security Scan Timer
+Requires=security-daily-scan.service
+
+[Timer]
+OnCalendar=*-*-* 09:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+
+    # Create weekly timer
+    cat > "$HOME/.config/systemd/user/security-weekly-scan.timer" << EOF
+[Unit]
+Description=Weekly Security Scan Timer
+Requires=security-weekly-scan.service
+
+[Timer]
+OnCalendar=Mon *-*-* 10:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+
+    # Create monthly timer
+    cat > "$HOME/.config/systemd/user/security-monthly-scan.timer" << EOF
+[Unit]
+Description=Monthly Security Scan Timer
+Requires=security-monthly-scan.service
+
+[Timer]
+OnCalendar=*-*-1 11:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+
+    # Create service files
+    for scan_type in daily weekly monthly; do
+        cat > "$HOME/.config/systemd/user/security-${scan_type}-scan.service" << EOF
+[Unit]
+Description=${scan_type^} Security Scan
+
+[Service]
+Type=oneshot
+ExecStart=$SECURITY_SUITE_HOME/scripts/security-${scan_type}-scan.sh
+WorkingDirectory=$SECURITY_SUITE_HOME/scripts
+StandardOutput=journal
+StandardError=journal
+Environment=USER=$CURRENT_USER
+Environment=HOME=$CURRENT_HOME
+Environment=SECURITY_SUITE_HOME=$SECURITY_SUITE_HOME
+EOF
+    done
+
+    systemctl --user daemon-reload
+    show_success "Created systemd timers"
+}
+
+# Enable systemd timers
+enable_systemd_timers() {
+    show_progress "Enabling systemd timers"
+    
+    # Enable timers
+    systemctl --user enable security-daily-scan.timer
+    systemctl --user enable security-weekly-scan.timer
+    systemctl --user enable security-monthly-scan.timer
+    
+    # Start timers
+    systemctl --user start security-daily-scan.timer
+    systemctl --user start security-weekly-scan.timer
+    systemctl --user start security-monthly-scan.timer
+    
+    show_success "Enabled systemd timers"
+}
+
+# Create dashboard API endpoints
+create_dashboard_api() {
+    local api_dir="$SECURITY_SUITE_HOME/web-dashboard/api"
+    mkdir -p "$api_dir"
+    
+    # Create system API
+    cat > "$api_dir/system.py" << 'EOF'
+#!/usr/bin/env python3
+"""
+System API endpoints for Garuda Security Dashboard
+"""
+
+import os
+import subprocess
+import psutil
+from datetime import datetime
+from flask import Blueprint, jsonify, request
+
+system_bp = Blueprint('system', __name__)
+
+@system_bp.route('/api/system/info', methods=['GET'])
+def get_system_info():
+    """Get basic system information"""
+    try:
+        info = {
+            'hostname': os.uname().nodename,
+            'platform': os.uname().sysname,
+            'release': os.uname().release,
+            'architecture': os.uname().machine,
+            'cpu_count': psutil.cpu_count(),
+            'memory_total': psutil.virtual_memory().total,
+            'disk_usage': psutil.disk_usage('/').percent,
+            'timestamp': datetime.now().isoformat()
+        }
+        return jsonify(info)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@system_bp.route('/api/system/processes', methods=['GET'])
+def get_processes():
+    """Get running processes"""
+    try:
+        processes = []
+        for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_percent']):
+            try:
+                processes.append(proc.info)
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+        return jsonify(processes)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+EOF
+
+    # Create incidents API
+    cat > "$api_dir/incidents.py" << 'EOF'
+#!/usr/bin/env python3
+"""
+Incidents API endpoints for Garuda Security Dashboard
+"""
+
+import os
+import json
+from datetime import datetime
+from flask import Blueprint, jsonify, request
+
+incidents_bp = Blueprint('incidents', __name__)
+
+@incidents_bp.route('/api/incidents', methods=['GET'])
+def get_incidents():
+    """Get security incidents"""
+    try:
+        incidents_dir = os.environ.get('SECURITY_SUITE_HOME', os.path.expanduser('~/security-suite'))
+        incidents_file = os.path.join(incidents_dir, 'logs', 'incidents.json')
+        
+        incidents = []
+        if os.path.exists(incidents_file):
+            with open(incidents_file, 'r') as f:
+                incidents = json.load(f)
+        
+        return jsonify(incidents)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@incidents_bp.route('/api/incidents', methods=['POST'])
+def create_incident():
+    """Create a new incident"""
+    try:
+        incident_data = request.get_json()
+        
+        incidents_dir = os.environ.get('SECURITY_SUITE_HOME', os.path.expanduser('~/security-suite'))
+        incidents_file = os.path.join(incidents_dir, 'logs', 'incidents.json')
+        
+        incidents = []
+        if os.path.exists(incidents_file):
+            with open(incidents_file, 'r') as f:
+                incidents = json.load(f)
+        
+        incident = {
+            'id': len(incidents) + 1,
+            'timestamp': datetime.now().isoformat(),
+            'status': 'open',
+            **incident_data
+        }
+        
+        incidents.append(incident)
+        
+        os.makedirs(os.path.dirname(incidents_file), exist_ok=True)
+        with open(incidents_file, 'w') as f:
+            json.dump(incidents, f, indent=2)
+        
+        return jsonify(incident), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+EOF
+
+    show_success "Created dashboard API endpoints"
+}
+
+# Configuration validation
+validate_configuration() {
+    show_progress "Validating configuration"
+    
+    local config_file="$SECURITY_SUITE_HOME/configs/security-config.conf"
+    local validation_errors=()
+    
+    if [ ! -f "$config_file" ]; then
+        validation_errors+=("Configuration file not found: $config_file")
+    else
+        # Check required configuration variables
+        local required_vars=("SECURITY_SUITE_HOME" "SCRIPTS_DIR" "LOGS_DIR")
+        for var in "${required_vars[@]}"; do
+            if ! grep -q "^$var=" "$config_file"; then
+                validation_errors+=("Missing required variable: $var")
+            fi
+        done
+    fi
+    
+    if [ ${#validation_errors[@]} -gt 0 ]; then
+        show_error "Configuration validation failed:"
+        for error in "${validation_errors[@]}"; do
+            echo -e "${RED}  • $error${NC}"
+        done
+        return 1
+    fi
+    
+    show_success "Configuration validation passed"
+    return 0
+}
+
+# Set proper file permissions
+set_file_permissions() {
+    show_progress "Setting file permissions"
+    
+    # Set directory permissions
+    find "$SECURITY_SUITE_HOME" -type d -exec chmod 755 {} \;
+    
+    # Set file permissions
+    find "$SECURITY_SUITE_HOME" -type f -name "*.sh" -exec chmod 755 {} \;
+    find "$SECURITY_SUITE_HOME" -type f -name "*.conf" -exec chmod 644 {} \;
+    find "$SECURITY_SUITE_HOME" -type f -name "*.py" -exec chmod 644 {} \;
+    
+    # Set special permissions for sensitive files
+    chmod 600 "$SECURITY_SUITE_HOME/configs/"* 2>/dev/null || true
+    
+    show_success "File permissions set"
+}
+
+# Interactive help for components
+show_component_help() {
+    local component="$1"
+    
+    case "$component" in
+        "security-tools")
+            echo -e "${CYAN}Security Tools Component:${NC}"
+            echo -e "• ClamAV: Antivirus scanner for malware detection"
+            echo -e "• rkhunter: Rootkit detection tool"
+            echo -e "• chkrootkit: Additional rootkit checker"
+            echo -e "• Lynis: Security auditing and compliance testing"
+            ;;
+        "web-dashboard")
+            echo -e "${CYAN}Web Dashboard Component:${NC}"
+            echo -e "• Flask-based web interface"
+            echo -e "• Real-time monitoring dashboard"
+            echo -e "• RESTful API endpoints"
+            echo -e "• Interactive incident management"
+            ;;
+        "behavioral-analysis")
+            echo -e "${CYAN}Behavioral Analysis Component:${NC}"
+            echo -e "• System behavior monitoring"
+            echo -e "• Anomaly detection"
+            echo -e "• Baseline establishment"
+            echo -e "• Threat scoring"
+            ;;
+        "incident-response")
+            echo -e "${CYAN}Incident Response Component:${NC}"
+            echo -e "• Automated incident handling"
+            echo -e "• Evidence preservation"
+            echo -e "• Escalation management"
+            echo -e "• Reporting capabilities"
+            ;;
+        "threat-intelligence")
+            echo -e "${CYAN}Threat Intelligence Component:${NC}"
+            echo -e "• IOC (Indicators of Compromise) matching"
+            echo -e "• Reputation checking"
+            echo -e "• Threat feed integration"
+            echo -e "• Automated analysis"
+            ;;
+        "scheduling")
+            echo -e "${CYAN}Scheduling Component:${NC}"
+            echo -e "• Automated scan scheduling"
+            echo -e "• Systemd timer integration"
+            echo -e "• Configurable scan intervals"
+            echo -e "• Persistent scheduling"
+            ;;
+    esac
+}
+
+# Main installation function
+main_installation() {
+    echo -e "${CYAN}================================================================${NC}"
+    echo -e "${WHITE}      🛡️ SECURITY SUITE V6.0 SETUP 🛡️${NC}"
+    echo -e "${CYAN}================================================================${NC}"
+    echo -e "${YELLOW}Enhanced with menu-driven installation and comprehensive features!${NC}"
+    echo -e "${CYAN}================================================================${NC}"
+    echo ""
+    echo -e "${BLUE}Setup timestamp: ${SETUP_TIMESTAMP}${NC}"
+    echo -e "${BLUE}Setup date: ${SETUP_DATE}${NC}"
+    echo ""
+    
+    # Show installation menu
+    show_installation_menu
+    
+    echo -e "${GREEN}Selected installation type: ${INSTALLATION_TYPE}${NC}"
+    echo -e "${GREEN}Components to install: ${INSTALLATION_COMPONENTS[*]}${NC}"
+    echo ""
+    
+    # Show component help
+    for component in "${INSTALLATION_COMPONENTS[@]}"; do
+        show_component_help "$component"
+        echo ""
+    done
+    
+    read -p "Proceed with installation? (Y/n): " -n 1 -r
+    echo ""
+    if [[ $REPLY =~ ^[Nn]$ ]]; then
+        echo -e "${BLUE}👋 Installation cancelled${NC}"
+        exit 0
+    fi
+    
+    # Check system dependencies
+    check_system_dependencies || {
+        show_error "System dependency check failed"
+        exit 1
+    }
+    
+    # Create base directory structure
+    show_progress "Creating base directory structure"
+    mkdir -p "$SECURITY_SUITE_HOME"
+    mkdir -p "$SECURITY_SUITE_HOME/logs"
+    mkdir -p "$SECURITY_SUITE_HOME/configs"
+    mkdir -p "$SECURITY_SUITE_HOME/scripts"
+    mkdir -p "$SECURITY_SUITE_HOME/backups"
+    
+    # Install selected components
+    for component in "${INSTALLATION_COMPONENTS[@]}"; do
+        echo ""
+        echo -e "${BLUE}Installing component: ${component}${NC}"
+        
+        case "$component" in
+            "security-tools")
+                install_security_tools || {
+                    show_error "Failed to install security tools"
+                    rollback_installation
+                    exit 1
+                }
+                ;;
+            "web-dashboard")
+                install_web_dashboard || {
+                    show_error "Failed to install web dashboard"
+                    rollback_installation
+                    exit 1
+                }
+                ;;
+            "behavioral-analysis")
+                install_behavioral_analysis || {
+                    show_error "Failed to install behavioral analysis"
+                    rollback_installation
+                    exit 1
+                }
+                ;;
+            "incident-response")
+                install_incident_response || {
+                    show_error "Failed to install incident response"
+                    rollback_installation
+                    exit 1
+                }
+                ;;
+            "threat-intelligence")
+                install_threat_intelligence || {
+                    show_error "Failed to install threat intelligence"
+                    rollback_installation
+                    exit 1
+                }
+                ;;
+            "scheduling")
+                install_scheduling || {
+                    show_error "Failed to install scheduling"
+                    rollback_installation
+                    exit 1
+                }
+                ;;
+            "update")
+                update_existing_installation || {
+                    show_error "Failed to update existing installation"
+                    exit 1
+                }
+                ;;
+        esac
+        
+        INSTALLATION_COMPONENTS+=("$component")
+    done
+    
+    # Validate configuration
+    validate_configuration || {
+        show_error "Configuration validation failed"
+        rollback_installation
+        exit 1
+    }
+    
+    # Set file permissions
+    set_file_permissions
+    
+    # Create notification functions
+    create_notification_functions
+    
+    echo ""
+    echo -e "${CYAN}================================================================${NC}"
+    echo -e "${WHITE}     🎉 INSTALLATION COMPLETE! 🎉${NC}"
+    echo -e "${CYAN}================================================================${NC}"
+    echo ""
+    echo -e "${GREEN}✅ Installation type: ${INSTALLATION_TYPE}${NC}"
+    echo -e "${GREEN}✅ Components installed: ${INSTALLATION_COMPONENTS[*]}${NC}"
+    echo -e "${GREEN}✅ Installation directory: ${SECURITY_SUITE_HOME}${NC}"
+    echo ""
+    
+    # Show next steps based on installed components
+    echo -e "${CYAN}🚀 Next Steps:${NC}"
+    
+    if [[ " ${INSTALLATION_COMPONENTS[*]} " =~ " web-dashboard " ]]; then
+        echo -e "${GREEN}• Start web dashboard: ${WHITE}systemctl --user start garuda-dashboard.service${NC}"
+        echo -e "${GREEN}• Access dashboard: ${WHITE}http://localhost:5000${NC}"
+    fi
+    
+    if [[ " ${INSTALLATION_COMPONENTS[*]} " =~ " scheduling " ]]; then
+        echo -e "${GREEN}• View timers: ${WHITE}systemctl --user list-timers | grep security${NC}"
+    fi
+    
+    echo -e "${GREEN}• Run manual scan: ${WHITE}cd $SECURITY_SUITE_HOME/scripts && ./security-daily-scan.sh${NC}"
+    echo -e "${GREEN}• View logs: ${WHITE}ls -la $SECURITY_SUITE_HOME/logs/${NC}"
+    echo ""
+    
+    echo -e "${CYAN}================================================================${NC}"
+    
+    # Mark installation completion
+    mkdir -p "$SECURITY_SUITE_HOME/logs/manual"
+    echo "$(date): Installation V6.0 completed successfully - Type: $INSTALLATION_TYPE - Components: ${INSTALLATION_COMPONENTS[*]}" >> "$SECURITY_SUITE_HOME/logs/manual/setup.log"
+    
+    return 0
+}
+
+# Create notification functions
+create_notification_functions() {
+    cat > "$SECURITY_SUITE_HOME/scripts/notification-functions.sh" << 'EOF'
 #!/bin/bash
 # Notification Support Functions
-# Version: 5.0 - Complete setup with scheduling
+# Version: 6.0 - Enhanced setup
 
 check_notification_support() {
     if command -v notify-send &>/dev/null; then
@@ -1031,192 +1584,46 @@ send_notification() {
 
 export -f check_notification_support
 export -f send_notification
-NOTIF_END
+EOF
 
-chmod +x "$SECURITY_SUITE_HOME/scripts/notification-functions.sh"
+    chmod +x "$SECURITY_SUITE_HOME/scripts/notification-functions.sh"
+    show_success "Created notification functions"
+}
 
-# Generate enhanced test script
-show_progress "Creating enhanced test script"
-TEST_SCRIPT="$SECURITY_SUITE_HOME/scripts/security-test.sh"
-cat > "$TEST_SCRIPT" << 'TEST_END'
-#!/bin/bash
-# Enhanced Security Test Script
-# Generated with Complete Setup V5.0
-
-# Load configuration
-if [ -f "$SECURITY_SUITE_HOME/configs/security-config.conf" ]; then
-    source "$SECURITY_SUITE_HOME/configs/security-config.conf"
-fi
-
-# Load notification functions
-if [ -f "$SECURITY_SUITE_HOME/scripts/notification-functions.sh" ]; then
-    source "$SECURITY_SUITE_HOME/scripts/notification-functions.sh"
-fi
-
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-WHITE='\033[1;37m'
-NC='\033[0m'
-
-echo -e "${CYAN}==========================================${NC}"
-echo -e "${WHITE}  🧪 Enhanced Security Test${NC}"
-echo -e "${CYAN}==========================================${NC}"
-echo -e "${BLUE}Test started: $(date)${NC}"
-echo ""
-
-# Send start notification
-send_notification "🛡️ Security Test" "Starting enhanced security test..." "security-high" "normal"
-
-# Create test log file
-timestamp=$(date +"%Y%m%d_%H%M%S")
-TEST_LOG="$SECURITY_SUITE_HOME/logs/manual/enhanced_test_${timestamp}.log"
-
-echo -e "${YELLOW}🧪 Testing security tools with EICAR test signature...${NC}"
-echo ""
-
-# Create temporary test directory
-TEST_DIR="/tmp/security-test-$$"
-mkdir -p "$TEST_DIR"
-cd "$TEST_DIR"
-
-# Create harmless test files
-echo -e "${GREEN}📝 Creating test files...${NC}"
-echo "This is a normal text file" > normal_file.txt
-echo "Test document content" > document.doc
-
-# Create EICAR test virus (harmless test signature)
-echo -e "${BLUE}🦠 Creating EICAR test virus signature (harmless)...${NC}"
-echo -e "${CYAN}ℹ️  EICAR is a standard test file used to verify antivirus software${NC}"
-echo 'X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*' > eicar_test.com
-
-echo ""
-echo -e "${YELLOW}🔍 Testing ClamAV detection...${NC}"
-echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-
-# Run ClamAV test
-if command -v clamscan &>/dev/null; then
-    clamscan -r --bell "$TEST_DIR" 2>&1 | tee "$TEST_LOG"
+# Update existing installation
+update_existing_installation() {
+    show_progress "Updating existing installation"
     
-    # Check results
-    if grep -q "eicar_test.com.*FOUND" "$TEST_LOG"; then
-        echo -e "${GREEN}🎉 SUCCESS! ClamAV correctly detected EICAR test signature!${NC}"
-        send_notification "🎉 Test Success!" "ClamAV correctly detected the test signature!" "security-high" "normal"
-        test_result="PASSED"
-    else
-        echo -e "${YELLOW}⚠️  ClamAV test WARNING - EICAR signature not detected${NC}"
-        send_notification "⚠️ Test Warning" "EICAR not detected - Check ClamAV config" "security-medium" "normal"
-        test_result="WARNING"
+    if [ ! -d "$SECURITY_SUITE_HOME" ]; then
+        show_error "No existing installation found"
+        return 1
     fi
-else
-    echo -e "${RED}❌ ClamAV not found - please install it${NC}"
-    test_result="FAILED"
-fi
+    
+    # Backup existing configuration
+    local backup_dir="$SECURITY_SUITE_HOME.backup.$(date +%s)"
+    cp -r "$SECURITY_SUITE_HOME" "$backup_dir"
+    show_success "Created backup: $backup_dir"
+    
+    # Update scripts
+    if [ -d "$SCRIPT_DIR" ]; then
+        cp -r "$SCRIPT_DIR"/* "$SECURITY_SUITE_HOME/scripts/" 2>/dev/null || true
+        show_success "Updated scripts"
+    fi
+    
+    # Update configurations
+    if [ -d "$SCRIPT_DIR/../configs" ]; then
+        cp -r "$SCRIPT_DIR/../configs"/* "$SECURITY_SUITE_HOME/configs/" 2>/dev/null || true
+        show_success "Updated configurations"
+    fi
+    
+    # Reload systemd services
+    systemctl --user daemon-reload 2>/dev/null || true
+    
+    show_success "Installation update completed"
+    return 0
+}
 
-echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-
-# Cleanup test files
-echo ""
-echo -e "${BLUE}🧹 Cleaning up test files...${NC}"
-cd "$HOME"
-rm -rf "$TEST_DIR"
-echo -e "${GREEN}✅ Test files cleaned up${NC}"
-
-echo ""
-echo -e "${CYAN}==========================================${NC}"
-echo -e "${WHITE}  🧪 Enhanced Test Complete${NC}"
-echo -e "${CYAN}==========================================${NC}"
-echo -e "${BLUE}Test finished: $(date)${NC}"
-echo -e "${BLUE}Test result: $test_result${NC}"
-echo -e "${BLUE}📂 Test log saved to: $(basename "$TEST_LOG")${NC}"
-echo -e "${CYAN}==========================================${NC}"
-TEST_END
-
-chmod +x "$TEST_SCRIPT"
-
-# Create basic scan scripts (simplified versions)
-show_progress "Creating security scan scripts"
-
-# Create daily, weekly, and monthly scan scripts by copying the test script
-cp "$TEST_SCRIPT" "$SECURITY_SUITE_HOME/scripts/security-daily-scan.sh"
-cp "$TEST_SCRIPT" "$SECURITY_SUITE_HOME/scripts/security-weekly-scan.sh"
-cp "$TEST_SCRIPT" "$SECURITY_SUITE_HOME/scripts/security-monthly-scan.sh"
-
-# Make sure they're executable
-chmod +x "$SECURITY_SUITE_HOME/scripts/security-daily-scan.sh"
-chmod +x "$SECURITY_SUITE_HOME/scripts/security-weekly-scan.sh"
-chmod +x "$SECURITY_SUITE_HOME/scripts/security-monthly-scan.sh"
-
-show_success "Security scan scripts created"
-
-# Generate systemd timers if requested
-generate_systemd_timers
-
-# Enable timers if requested
-enable_systemd_timers
-
-echo ""
-echo -e "${CYAN}================================================================${NC}"
-echo -e "${WHITE}     🎉 COMPLETE SECURITY SUITE V5.0 SETUP COMPLETE! 🎉${NC}"
-echo -e "${CYAN}================================================================${NC}"
-echo ""
-
-echo -e "${GREEN}✅ Your Complete Configuration:${NC}"
-echo -e "${BLUE}📁 Selected Tools: ${SELECTED_TOOLS[*]}${NC}"
-echo -e "${BLUE}🔔 Notifications: $NOTIFICATIONS_ENABLED${NC}"
-echo -e "${BLUE}🔄 Auto-updates: $UPDATE_BEFORE_SCAN${NC}"
-echo -e "${BLUE}📊 Real-time feedback: $REAL_TIME_FEEDBACK${NC}"
-echo -e "${BLUE}🧹 Auto-cleanup logs: $AUTO_CLEANUP_LOGS${NC}"
-echo -e "${BLUE}🎨 Colors enabled: $USE_COLORS${NC}"
-echo -e "${BLUE}⏰ Automated scheduling: $ENABLE_SCHEDULING${NC}"
-if [ "$ENABLE_SCHEDULING" = "true" ]; then
-    echo -e "${BLUE}   📅 Daily: $DAILY_TIME | Weekly: $WEEKLY_DAY $WEEKLY_TIME | Monthly: Day $MONTHLY_DAY $MONTHLY_TIME${NC}"
-fi
-echo ""
-
-echo -e "${YELLOW}🚀 Your complete security suite has been configured!${NC}"
-echo -e "${BLUE}📖 Configuration saved to: $SECURITY_SUITE_HOME/configs/security-config.conf${NC}"
-echo ""
-
-# Run comprehensive final test
-read -p "🧪 Run comprehensive final test to validate everything? (Y/n): " -n 1 -r
-echo ""
-if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-    run_comprehensive_final_test
-fi
-
-echo ""
-echo -e "${GREEN}🛡️ Your complete automated security suite is ready!${NC}"
-echo -e "${BLUE}📅 Setup completed: $(date)${NC}"
-
-# Show next steps
-echo ""
-echo -e "${CYAN}🚀 Next Steps:${NC}"
-if [ "$ENABLE_SCHEDULING" = "true" ]; then
-    echo -e "${GREEN}✅ Automatic scans are scheduled and will run:${NC}"
-    echo -e "   • ${WHITE}Daily:${NC} Every day at $DAILY_TIME"
-    echo -e "   • ${WHITE}Weekly:${NC} Every $WEEKLY_DAY at $WEEKLY_TIME"
-    echo -e "   • ${WHITE}Monthly:${NC} Day $MONTHLY_DAY of each month at $MONTHLY_TIME"
-    echo ""
-    echo -e "${BLUE}📋 Timer Management Commands:${NC}"
-    echo -e "   • View timers: ${WHITE}systemctl --user list-timers | grep security${NC}"
-    echo -e "   • Stop timer: ${WHITE}systemctl --user stop security-daily-scan.timer${NC}"
-    echo -e "   • Start timer: ${WHITE}systemctl --user start security-daily-scan.timer${NC}"
-else
-    echo -e "${YELLOW}📅 Manual scheduling - Run scans manually:${NC}"
-    echo -e "   • ${WHITE}cd $SECURITY_SUITE_HOME/scripts${NC}"
-    echo -e "   • ${WHITE}./security-daily-scan.sh${NC}"
-    echo -e "   • ${WHITE}./security-weekly-scan.sh${NC}"
-    echo -e "   • ${WHITE}./security-monthly-scan.sh${NC}"
-fi
-
-echo -e "${CYAN}================================================================${NC}"
-
-# Mark setup completion
-mkdir -p "$SECURITY_SUITE_HOME/logs/manual"
-echo "$(date): Complete interactive setup V5.0 completed successfully with scheduling: $ENABLE_SCHEDULING" >> "$SECURITY_SUITE_HOME/logs/manual/setup.log"
+# Start the installation
+main_installation
 
 exit 0

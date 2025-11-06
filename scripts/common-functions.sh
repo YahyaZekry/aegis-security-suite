@@ -488,9 +488,112 @@ monitor_resources_during_operation() {
 }
 
 # Export all functions
+# User detection and path resolution functions
+detect_current_user() {
+    # Get current user (works in both interactive and service environments)
+    if [ -n "$SUDO_USER" ]; then
+        echo "$SUDO_USER"
+    elif [ -n "$USER" ]; then
+        echo "$USER"
+    else
+        whoami
+    fi
+}
+
+detect_user_home() {
+    local username="$1"
+    
+    # If no username provided, detect current user
+    if [ -z "$username" ]; then
+        username=$(detect_current_user)
+    fi
+    
+    # Get home directory for the user
+    getent passwd "$username" | cut -d: -f6
+}
+
+detect_security_suite_home() {
+    local username="$1"
+    local user_home="$2"
+    
+    # If no username provided, detect current user
+    if [ -z "$username" ]; then
+        username=$(detect_current_user)
+    fi
+    
+    # If no home provided, detect it
+    if [ -z "$user_home" ]; then
+        user_home=$(detect_user_home "$username")
+    fi
+    
+    # Check if SECURITY_SUITE_HOME is already set
+    if [ -n "$SECURITY_SUITE_HOME" ]; then
+        echo "$SECURITY_SUITE_HOME"
+        return 0
+    fi
+    
+    # Check common installation locations
+    local possible_paths=(
+        "$user_home/security-suite"
+        "/opt/garuda-security-suite"
+        "/usr/local/garuda-security-suite"
+        "$(dirname "$(dirname "$(readlink -f "$0")")")"  # Script directory parent
+    )
+    
+    for path in "${possible_paths[@]}"; do
+        if [ -d "$path" ]; then
+            echo "$path"
+            return 0
+        fi
+    done
+    
+    # Default to user home if nothing found
+    echo "$user_home/security-suite"
+}
+
+setup_user_environment() {
+    # Detect and set user-related environment variables
+    export CURRENT_USER=$(detect_current_user)
+    export CURRENT_HOME=$(detect_user_home "$CURRENT_USER")
+    export SECURITY_SUITE_HOME=$(detect_security_suite_home "$CURRENT_USER" "$CURRENT_HOME")
+    
+    # Export for subprocesses
+    export SCRIPTS_DIR="$SECURITY_SUITE_HOME/scripts"
+    export LOGS_DIR="$SECURITY_SUITE_HOME/logs"
+    export CONFIGS_DIR="$SECURITY_SUITE_HOME/configs"
+    export BACKUPS_DIR="$SECURITY_SUITE_HOME/backups"
+    
+    log_debug "User environment setup complete:"
+    log_debug "  CURRENT_USER: $CURRENT_USER"
+    log_debug "  CURRENT_HOME: $CURRENT_HOME"
+    log_debug "  SECURITY_SUITE_HOME: $SECURITY_SUITE_HOME"
+}
+
+create_user_agnostic_service() {
+    local template_file="$1"
+    local output_file="$2"
+    local service_user="${3:-$CURRENT_USER}"
+    
+    if [ ! -f "$template_file" ]; then
+        log_error "Service template file not found: $template_file"
+        return 1
+    fi
+    
+    # Create user-agnostic service file
+    sed -e "s|User=frieso|User=$service_user|g" \
+        -e "s|/home/frieso|$CURRENT_HOME|g" \
+        -e "s|/opt/garuda-security-suite|$SECURITY_SUITE_HOME|g" \
+        -e "s|/mnt/AirFryer/Projects/Linux/garuda-security-suite|$SECURITY_SUITE_HOME|g" \
+        "$template_file" > "$output_file"
+    
+    log_success "Created user-agnostic service: $output_file"
+}
+
 export -f log_message log_debug log_info log_warning log_error log_critical log_success
 export -f init_logging handle_critical_error cleanup_on_error
 export -f validate_input validate_path validate_time validate_email validate_pattern
 export -f execute_command check_disk_space check_memory_usage
 export -f send_notification download_with_retry run_scanner_with_fallback
 export -f retry_with_backoff monitor_resources_during_operation
+export -f detect_current_user detect_user_home detect_security_suite_home
+export -f setup_user_environment create_user_agnostic_service

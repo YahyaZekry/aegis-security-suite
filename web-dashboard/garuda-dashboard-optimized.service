@@ -1,0 +1,39 @@
+[Unit]
+Description=Optimized Garuda Security Suite Dashboard
+Documentation=https://github.com/garuda-security-suite/dashboard
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=garuda
+Group=garuda
+WorkingDirectory=/opt/garuda-security-suite/web-dashboard
+ExecStart=/usr/bin/python3 app-optimized.py
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
+Restart=on-failure
+RestartSec=30
+StartLimitBurst=3
+StartLimitInterval=300
+
+# Security settings
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/garuda-security-suite/logs
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictRealtime=true
+MemoryMax=512M
+CPUQuota=50%
+
+# Environment
+Environment=SECURITY_SUITE_HOME=/opt/garuda-security-suite
+Environment=FLASK_ENV=production
+
+[Install]
+WantedBy=multi-user.target

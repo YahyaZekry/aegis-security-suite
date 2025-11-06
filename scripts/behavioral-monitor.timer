@@ -1,0 +1,13 @@
+[Unit]
+Description=Timer for Garuda Security Suite Behavioral Monitor
+Documentation=https://github.com/garuda-security-suite/behavioral-analysis
+Requires=behavioral-monitor.service
+
+[Timer]
+# Run continuously - restart every hour if stopped
+OnCalendar=hourly
+Persistent=true
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target

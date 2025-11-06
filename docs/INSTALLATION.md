@@ -145,7 +145,8 @@ chmod 700 ~/security-suite/backups
 
 ```bash
 # Copy script files
-cp -r scripts/* ~/security-suite/scripts/
+cp -r src/core/scripts/* ~/security-suite/scripts/
+cp -r src/dashboard/* ~/security-suite/web-dashboard/
 cp -r configs/* ~/security-suite/configs/
 
 # Set script permissions
@@ -340,6 +341,17 @@ export SECURITY_SUITE_HOME="/opt/security-suite"
 
 # Run setup with custom path
 ./setup-security-suite.sh --install-dir "$SECURITY_SUITE_HOME"
+```
+
+#### Alternative: Service Template Processing
+
+For advanced users who want to manually process service templates:
+
+```bash
+# Use the service template processor
+./scripts/process-service-template.sh env                    # Show detected environment
+./scripts/process-service-template.sh process template.service output.service  # Process a template
+./scripts/process-service-template.sh install service-name template.service /etc/systemd/system  # Install service
 ```
 
 ### Silent Installation

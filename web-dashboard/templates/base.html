@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Garuda Security Suite - Advanced Security Monitoring Dashboard">
+    <meta name="keywords" content="security, monitoring, dashboard, threat detection, incident response">
+    <meta name="author" content="Garuda Security Suite">
+    
+    <title>{% block title %}Garuda Security Suite{% endblock %}</title>
+    
+    <!-- Preconnect to external domains -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Modern Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', filename='css/dashboard.css') }}" rel="stylesheet">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
+    
+    {% block head %}{% endblock %}
+    
+    <!-- Theme Color for Mobile Browsers -->
+    <meta name="theme-color" content="#1a73e8">
+    
+    <!-- Apple Touch Icon -->
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-content">
+            <div class="loading-logo">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <div class="loading-text">
+                <h2 class="text-gradient">Garuda Security Suite</h2>
+                <p>Initializing security dashboard...</p>
+            </div>
+            <div class="loading-progress">
+                <div class="progress">
+                    <div class="progress-bar" id="loading-progress" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modern Navigation -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <!-- Mobile Menu Toggle -->
+            <button class="navbar-toggler mobile-menu-toggle" type="button" id="mobileMenuToggle">
+                <span class="navbar-toggler-icon">
+                    <i class="fas fa-bars"></i>
+                </span>
+            </button>
+            
+            <!-- Brand -->
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+                <i class="fas fa-shield-alt brand-icon"></i>
+                <span class="brand-text">Garuda Security Suite</span>
+            </a>
+            
+            <!-- Desktop Navigation -->
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav mx-auto">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" 
+                           href="{{ url_for('dashboard') }}" data-bs-toggle="tooltip" title="Dashboard Overview">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'behavioral' %}active{% endif %}" 
+                           href="{{ url_for('behavioral') }}" data-bs-toggle="tooltip" title="Behavioral Analysis">
+                            <i class="fas fa-brain"></i>
+                            <span>Behavioral Analysis</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'threats' %}active{% endif %}" 
+                           href="{{ url_for('threats') }}" data-bs-toggle="tooltip" title="Threat Intelligence">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>Threat Intelligence</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'incidents' %}active{% endif %}" 
+                           href="{{ url_for('incidents') }}" data-bs-toggle="tooltip" title="Incident Management">
+                            <i class="fas fa-ambulance"></i>
+                            <span>Incidents</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'config_page' %}active{% endif %}" 
+                           href="{{ url_for('config_page') }}" data-bs-toggle="tooltip" title="Configuration">
+                            <i class="fas fa-cog"></i>
+                            <span>Configuration</span>
+                        </a>
+                    </li>
+                </ul>
+                
+                <!-- Right Side Navigation -->
+                <ul class="navbar-nav">
+                    <!-- Notifications -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link notification-toggle" href="#" role="button" data-bs-toggle="dropdown" id="notificationDropdown">
+                            <i class="fas fa-bell"></i>
+                            <span class="notification-badge" id="notificationCount">0</span>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end notification-dropdown" aria-labelledby="notificationDropdown">
+                            <div class="notification-header">
+                                <h6>Notifications</h6>
+                                <button class="btn btn-sm btn-outline" onclick="clearNotifications()">Clear All</button>
+                            </div>
+                            <div class="notification-list" id="notificationList">
+                                <div class="notification-item">
+                                    <p class="text-muted">No new notifications</p>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    
+                    <!-- User Menu -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link user-menu-toggle" href="#" role="button" data-bs-toggle="dropdown" id="userDropdown">
+                            <div class="user-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <span class="user-name">{{ session.username if 'username' in session else 'User' }}</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end user-dropdown" aria-labelledby="userDropdown">
+                            <div class="user-info">
+                                <div class="user-avatar-large">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <div class="user-details">
+                                    <h6>{{ session.username if 'username' in session else 'User' }}</h6>
+                                    <span class="user-role">{{ session.role if 'role' in session else 'Analyst' }}</span>
+                                </div>
+                            </div>
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" href="#">
+                                <i class="fas fa-user-circle"></i> Profile
+                            </a>
+                            <a class="dropdown-item" href="#">
+                                <i class="fas fa-cog"></i> Settings
+                            </a>
+                            <a class="dropdown-item" href="#">
+                                <i class="fas fa-question-circle"></i> Help
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item text-danger" href="{{ url_for('logout') }}">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Layout -->
+    <div class="main-layout">
+        <!-- Modern Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-content">
+                <!-- Quick Actions -->
+                <div class="sidebar-section">
+                    <h6 class="sidebar-heading">Quick Actions</h6>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="toggleMonitoring()" id="monitoringToggle">
+                                <i class="fas fa-play-circle"></i>
+                                <span>Real-time Monitoring</span>
+                                <div class="status-indicator" id="monitoringStatus"></div>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="startQuickScan()">
+                                <i class="fas fa-shield-virus"></i>
+                                <span>Quick Scan</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="generateReport()">
+                                <i class="fas fa-file-alt"></i>
+                                <span>Generate Report</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <!-- System Status -->
+                <div class="sidebar-section">
+                    <h6 class="sidebar-heading">System Status</h6>
+                    <div class="status-overview">
+                        <div class="status-item">
+                            <div class="status-icon success">
+                                <i class="fas fa-circle"></i>
+                            </div>
+                            <div class="status-info">
+                                <span class="status-label">System</span>
+                                <span class="status-value" id="system-status">Online</span>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-icon info">
+                                <i class="fas fa-microchip"></i>
+                            </div>
+                            <div class="status-info">
+                                <span class="status-label">CPU</span>
+                                <span class="status-value" id="cpu-usage">0%</span>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-icon warning">
+                                <i class="fas fa-memory"></i>
+                            </div>
+                            <div class="status-info">
+                                <span class="status-label">Memory</span>
+                                <span class="status-value" id="memory-usage">0%</span>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-icon danger">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="status-info">
+                                <span class="status-label">Threat Level</span>
+                                <span class="status-value" id="threat-level">Low</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quick Stats -->
+                <div class="sidebar-section">
+                    <h6 class="sidebar-heading">Quick Stats</h6>
+                    <div class="quick-stats">
+                        <div class="stat-item">
+                            <div class="stat-number" id="incidents-count">0</div>
+                            <div class="stat-label">Active Incidents</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="threats-count">0</div>
+                            <div class="stat-label">Threats Detected</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="scans-count">0</div>
+                            <div class="stat-label">Scans Completed</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Page Header -->
+            <div class="page-header">
+                <div class="page-header-content">
+                    <div class="page-title-section">
+                        <h1 class="page-title">{% block page_title %}Dashboard{% endblock %}</h1>
+                        <p class="page-subtitle">{% block page_subtitle %}Security monitoring and management{% endblock %}</p>
+                    </div>
+                    <div class="page-actions">
+                        <div class="action-buttons">
+                            <button type="button" class="btn btn-outline" onclick="refreshData()" data-bs-toggle="tooltip" title="Refresh Data">
+                                <i class="fas fa-sync-alt"></i>
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                            </button>
+                            <div class="dropdown">
+                                <button type="button" class="btn btn-outline dropdown-toggle" data-bs-toggle="dropdown" data-bs-toggle="tooltip" title="Export Data">
+                                    <i class="fas fa-download"></i>
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#" onclick="exportData('json')">
+                                        <i class="fas fa-code"></i> JSON
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="exportData('csv')">
+                                        <i class="fas fa-file-csv"></i> CSV
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="exportData('pdf')">
+                                        <i class="fas fa-file-pdf"></i> PDF
+                                    </a></li>
+                                </ul>
+                            </div>
+                            <button type="button" class="btn btn-outline" onclick="toggleFullscreen()" data-bs-toggle="tooltip" title="Toggle Fullscreen">
+                                <i class="fas fa-expand"></i>
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Flash Messages -->
+            <div class="flash-messages">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show slide-in-right" role="alert">
+                                <div class="alert-content">
+                                    <i class="fas fa-{% if category == 'error' %}exclamation-circle{% elif category == 'success' %}check-circle{% elif category == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %} alert-icon"></i>
+                                    <span class="alert-message">{{ message }}</span>
+                                </div>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+            </div>
+
+            <!-- Page Content -->
+            <div class="page-content">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+
+    <!-- Modern Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <p class="footer-text">&copy; 2025 Garuda Security Suite. All rights reserved.</p>
+            </div>
+            <div class="footer-section">
+                <div class="footer-info">
+                    <span class="footer-version">Version 1.0.0</span>
+                    <span class="footer-separator">•</span>
+                    <span class="footer-updated">Last Updated: <span id="last-updated">Never</span></span>
+                </div>
+            </div>
+            <div class="footer-section">
+                <div class="footer-links">
+                    <a href="#" class="footer-link">Documentation</a>
+                    <a href="#" class="footer-link">Support</a>
+                    <a href="#" class="footer-link">API</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Theme Toggle Button -->
+    <button class="theme-toggle" id="themeToggle" data-bs-toggle="tooltip" title="Toggle Theme">
+        <i class="fas fa-moon" id="themeIcon"></i>
+    </button>
+
+    <!-- Keyboard Shortcuts Modal -->
+    <div class="modal fade" id="shortcutsModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content glass-effect">
+                <div class="modal-header">
+                    <h5 class="modal-title">Keyboard Shortcuts</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="shortcuts-list">
+                        <div class="shortcut-item">
+                            <kbd>Ctrl</kbd> + <kbd>K</kbd>
+                            <span>Quick Search</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>Ctrl</kbd> + <kbd>R</kbd>
+                            <span>Refresh Data</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>T</kbd>
+                            <span>Toggle Theme</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>M</kbd>
+                            <span>Toggle Monitoring</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd>
+                            <span>Start Quick Scan</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>F11</kbd>
+                            <span>Toggle Fullscreen</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>Esc</kbd>
+                            <span>Close Modals</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    
+    {% block scripts %}{% endblock %}
+    
+    <!-- Loading Screen Script -->
+    <script>
+        // Hide loading screen when page is ready
+        window.addEventListener('load', function() {
+            const progress = document.getElementById('loading-progress');
+            const loadingScreen = document.getElementById('loading-screen');
+            
+            // Simulate loading progress
+            let width = 0;
+            const interval = setInterval(() => {
+                width += 10;
+                progress.style.width = width + '%';
+                
+                if (width >= 100) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        loadingScreen.style.opacity = '0';
+                        setTimeout(() => {
+                            loadingScreen.style.display = 'none';
+                        }, 500);
+                    }, 300);
+                }
+            }, 100);
+        });
+    </script>
+</body>
+</html>

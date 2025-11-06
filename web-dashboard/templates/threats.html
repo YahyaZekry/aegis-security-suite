@@ -1,0 +1,1431 @@
+{% extends "base.html" %}
+
+{% block title %}Threat Intelligence - Garuda Security Suite{% endblock %}
+
+{% block page_title %}Threat Intelligence{% endblock %}
+{% block page_subtitle %}Advanced threat detection and intelligence management{% endblock %}
+
+{% block content %}
+<!-- Threat Intelligence Overview -->
+<div class="threat-overview-section">
+    <div class="row">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="status-card primary fade-in">
+                <div class="status-icon primary">
+                    <i class="fas fa-database"></i>
+                </div>
+                <div class="status-content">
+                    <h3 class="status-title">IOC Database</h3>
+                    <div class="status-value" id="ioc-count">0</div>
+                    <div class="status-change">
+                        <span class="change-positive">+127</span> new today
+                    </div>
+                </div>
+                <div class="status-chart">
+                    <canvas id="iocChart" width="100" height="40"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="status-card success fade-in" style="animation-delay: 0.1s">
+                <div class="status-icon success">
+                    <i class="fas fa-shield-virus"></i>
+                </div>
+                <div class="status-content">
+                    <h3 class="status-title">Threats Blocked</h3>
+                    <div class="status-value" id="threats-blocked">0</div>
+                    <div class="status-change">
+                        <span class="change-positive">+23</span> in last hour
+                    </div>
+                </div>
+                <div class="status-chart">
+                    <canvas id="blockedChart" width="100" height="40"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="status-card warning fade-in" style="animation-delay: 0.2s">
+                <div class="status-icon warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="status-content">
+                    <h3 class="status-title">Active Threats</h3>
+                    <div class="status-value" id="active-threats">0</div>
+                    <div class="status-change">
+                        <span class="change-negative">+5</span> critical
+                    </div>
+                </div>
+                <div class="status-chart">
+                    <canvas id="activeChart" width="100" height="40"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="status-card info fade-in" style="animation-delay: 0.3s">
+                <div class="status-icon info">
+                    <i class="fas fa-sync"></i>
+                </div>
+                <div class="status-content">
+                    <h3 class="status-title">Feed Updates</h3>
+                    <div class="status-value" id="feed-updates">Current</div>
+                    <div class="status-change">
+                        <span class="change-positive">2h</span> since last
+                    </div>
+                </div>
+                <div class="status-chart">
+                    <canvas id="feedChart" width="100" height="40"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Threat Analysis and Visualization -->
+<div class="threat-analysis-section">
+    <div class="row">
+        <!-- Threat Landscape Chart -->
+        <div class="col-xl-8 col-lg-7 mb-4">
+            <div class="chart-container fade-in">
+                <div class="chart-header">
+                    <div class="chart-title-section">
+                        <h3 class="chart-title">Threat Landscape Analysis</h3>
+                        <p class="chart-subtitle">Real-time threat detection and classification</p>
+                    </div>
+                    <div class="chart-options">
+                        <button class="chart-option active" data-range="24h" onclick="updateThreatChart('24h')">24H</button>
+                        <button class="chart-option" data-range="7d" onclick="updateThreatChart('7d')">7D</button>
+                        <button class="chart-option" data-range="30d" onclick="updateThreatChart('30d')">30D</button>
+                    </div>
+                </div>
+                <div class="chart-body">
+                    <canvas id="threatLandscapeChart"></canvas>
+                </div>
+                <div class="chart-legend">
+                    <div class="legend-item">
+                        <div class="legend-color malware"></div>
+                        <span>Malware</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color phishing"></div>
+                        <span>Phishing</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color exploit"></div>
+                        <span>Exploits</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color ddos"></div>
+                        <span>DDoS</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Threat Severity Distribution -->
+        <div class="col-xl-4 col-lg-5 mb-4">
+            <div class="chart-container fade-in">
+                <div class="chart-header">
+                    <div class="chart-title-section">
+                        <h3 class="chart-title">Threat Severity</h3>
+                        <p class="chart-subtitle">Current threat level distribution</p>
+                    </div>
+                </div>
+                <div class="chart-body">
+                    <canvas id="threatSeverityChart"></canvas>
+                </div>
+                <div class="threat-stats">
+                    <div class="threat-stat">
+                        <div class="threat-indicator critical"></div>
+                        <div class="threat-info">
+                            <span class="threat-label">Critical</span>
+                            <span class="threat-value" id="critical-count">0</span>
+                        </div>
+                    </div>
+                    <div class="threat-stat">
+                        <div class="threat-indicator high"></div>
+                        <div class="threat-info">
+                            <span class="threat-label">High</span>
+                            <span class="threat-value" id="high-count">0</span>
+                        </div>
+                    </div>
+                    <div class="threat-stat">
+                        <div class="threat-indicator medium"></div>
+                        <div class="threat-info">
+                            <span class="threat-label">Medium</span>
+                            <span class="threat-value" id="medium-count">0</span>
+                        </div>
+                    </div>
+                    <div class="threat-stat">
+                        <div class="threat-indicator low"></div>
+                        <div class="threat-info">
+                            <span class="threat-label">Low</span>
+                            <span class="threat-value" id="low-count">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- IOC Management and Recent Threats -->
+<div class="ioc-management-section">
+    <div class="row">
+        <!-- Recent Threats Timeline -->
+        <div class="col-lg-6 mb-4">
+            <div class="card fade-in">
+                <div class="card-header">
+                    <h3 class="card-title">Recent Threats</h3>
+                    <div class="card-actions">
+                        <button class="btn btn-sm btn-outline" onclick="refreshThreats()">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline dropdown-toggle" data-bs-toggle="dropdown">
+                                <i class="fas fa-filter"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#" onclick="filterThreats('all')">All Threats</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="filterThreats('active')">Active Only</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="filterThreats('blocked')">Blocked Only</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="filterThreats('critical')">Critical Only</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="timeline" id="threats-timeline">
+                        <div class="timeline-item skeleton">
+                            <div class="timeline-marker">
+                                <div class="skeleton" style="width: 24px; height: 24px; border-radius: 50%;"></div>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-header">
+                                    <div class="skeleton" style="width: 150px; height: 16px;"></div>
+                                    <div class="skeleton" style="width: 80px; height: 14px;"></div>
+                                </div>
+                                <div class="timeline-body">
+                                    <div class="skeleton" style="width: 100%; height: 12px; margin-bottom: 4px;"></div>
+                                    <div class="skeleton" style="width: 85%; height: 12px;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-center mt-3">
+                        <button class="btn btn-outline" onclick="viewAllThreats()">
+                            View All Threats <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- IOC Database Status -->
+        <div class="col-lg-6 mb-4">
+            <div class="card fade-in">
+                <div class="card-header">
+                    <h3 class="card-title">IOC Database Status</h3>
+                    <div class="card-actions">
+                        <button class="btn btn-sm btn-outline" onclick="updateIOCDatabase()">
+                            <i class="fas fa-sync"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="ioc-stats-grid">
+                        <div class="ioc-stat-item">
+                            <div class="ioc-icon">
+                                <i class="fas fa-fingerprint"></i>
+                            </div>
+                            <div class="ioc-info">
+                                <h4>File Hashes</h4>
+                                <div class="ioc-value" id="file-hashes">0</div>
+                                <div class="ioc-change">
+                                    <span class="change-positive">+45</span> today
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="ioc-stat-item">
+                            <div class="ioc-icon">
+                                <i class="fas fa-globe"></i>
+                            </div>
+                            <div class="ioc-info">
+                                <h4>IP Addresses</h4>
+                                <div class="ioc-value" id="ip-addresses">0</div>
+                                <div class="ioc-change">
+                                    <span class="change-positive">+127</span> today
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="ioc-stat-item">
+                            <div class="ioc-icon">
+                                <i class="fas fa-link"></i>
+                            </div>
+                            <div class="ioc-info">
+                                <h4>Domains</h4>
+                                <div class="ioc-value" id="domains">0</div>
+                                <div class="ioc-change">
+                                    <span class="change-positive">+23</span> today
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="ioc-stat-item">
+                            <div class="ioc-icon">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                            <div class="ioc-info">
+                                <h4>Email Addresses</h4>
+                                <div class="ioc-value" id="email-addresses">0</div>
+                                <div class="ioc-change">
+                                    <span class="change-positive">+8</span> today
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Threat Intelligence Actions -->
+<div class="threat-actions-section">
+    <div class="card fade-in">
+        <div class="card-header">
+            <h3 class="card-title">Threat Intelligence Actions</h3>
+            <p class="card-subtitle">Manage threat feeds and IOC operations</p>
+        </div>
+        <div class="card-body">
+            <div class="quick-actions-grid">
+                <button class="quick-action-btn" onclick="updateThreatFeeds()">
+                    <div class="action-icon primary">
+                        <i class="fas fa-download"></i>
+                    </div>
+                    <div class="action-content">
+                        <h4>Update Feeds</h4>
+                        <p>Refresh threat intelligence feeds</p>
+                    </div>
+                    <div class="action-arrow">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                </button>
+
+                <button class="quick-action-btn" onclick="importIOCs()">
+                    <div class="action-icon success">
+                        <i class="fas fa-upload"></i>
+                    </div>
+                    <div class="action-content">
+                        <h4>Import IOCs</h4>
+                        <p>Import indicators of compromise</p>
+                    </div>
+                    <div class="action-arrow">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                </button>
+
+                <button class="quick-action-btn" onclick="exportIOCs()">
+                    <div class="action-icon info">
+                        <i class="fas fa-file-export"></i>
+                    </div>
+                    <div class="action-content">
+                        <h4>Export IOCs</h4>
+                        <p>Export IOC database</p>
+                    </div>
+                    <div class="action-arrow">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                </button>
+
+                <button class="quick-action-btn" onclick="scanIOCs()">
+                    <div class="action-icon warning">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <div class="action-content">
+                        <h4>Scan IOCs</h4>
+                        <p>Scan system against IOCs</p>
+                    </div>
+                    <div class="action-arrow">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                </button>
+
+                <button class="quick-action-btn" onclick="configureFeeds()">
+                    <div class="action-icon secondary">
+                        <i class="fas fa-cog"></i>
+                    </div>
+                    <div class="action-content">
+                        <h4>Configure Feeds</h4>
+                        <p>Manage threat feed sources</p>
+                    </div>
+                    <div class="action-arrow">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                </button>
+
+                <button class="quick-action-btn" onclick="generateReport()">
+                    <div class="action-icon danger">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <div class="action-content">
+                        <h4>Threat Report</h4>
+                        <p>Generate threat intelligence report</p>
+                    </div>
+                    <div class="action-arrow">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Threat Feed Management -->
+<div class="feed-management-section">
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="card fade-in">
+                <div class="card-header">
+                    <h3 class="card-title">Active Threat Feeds</h3>
+                </div>
+                <div class="card-body">
+                    <div class="feed-list">
+                        <div class="feed-item">
+                            <div class="feed-status online">
+                                <i class="fas fa-circle"></i>
+                            </div>
+                            <div class="feed-info">
+                                <h5>MISP Community Feed</h5>
+                                <p>Updated 2 hours ago</p>
+                                <div class="feed-stats">
+                                    <span>IOCs: 1,247</span>
+                                    <span>Quality: High</span>
+                                </div>
+                            </div>
+                            <div class="feed-actions">
+                                <button class="btn btn-sm btn-outline" onclick="toggleFeed('misp')">
+                                    <i class="fas fa-pause"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="feed-item">
+                            <div class="feed-status online">
+                                <i class="fas fa-circle"></i>
+                            </div>
+                            <div class="feed-info">
+                                <h5>AlienVault OTX</h5>
+                                <p>Updated 1 hour ago</p>
+                                <div class="feed-stats">
+                                    <span>IOCs: 892</span>
+                                    <span>Quality: High</span>
+                                </div>
+                            </div>
+                            <div class="feed-actions">
+                                <button class="btn btn-sm btn-outline" onclick="toggleFeed('otx')">
+                                    <i class="fas fa-pause"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="feed-item">
+                            <div class="feed-status warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="feed-info">
+                                <h5>VirusTotal API</h5>
+                                <p>Updated 6 hours ago</p>
+                                <div class="feed-stats">
+                                    <span>IOCs: 2,341</span>
+                                    <span>Quality: Medium</span>
+                                </div>
+                            </div>
+                            <div class="feed-actions">
+                                <button class="btn btn-sm btn-outline" onclick="toggleFeed('virustotal')">
+                                    <i class="fas fa-sync"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card fade-in">
+                <div class="card-header">
+                    <h3 class="card-title">IOC Search</h3>
+                </div>
+                <div class="card-body">
+                    <div class="search-container">
+                        <div class="search-icon">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <input type="text" class="search-input" id="ioc-search" placeholder="Search IOCs by hash, IP, domain, or email...">
+                        <button class="search-clear" onclick="clearSearch()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    <div class="search-filters">
+                        <div class="filter-item">
+                            <label class="filter-label">IOC Type</label>
+                            <select class="filter-select" id="ioc-type-filter">
+                                <option value="all">All Types</option>
+                                <option value="hash">File Hash</option>
+                                <option value="ip">IP Address</option>
+                                <option value="domain">Domain</option>
+                                <option value="email">Email Address</option>
+                                <option value="url">URL</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-item">
+                            <label class="filter-label">Threat Level</label>
+                            <select class="filter-select" id="threat-level-filter">
+                                <option value="all">All Levels</option>
+                                <option value="critical">Critical</option>
+                                <option value="high">High</option>
+                                <option value="medium">Medium</option>
+                                <option value="low">Low</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-item">
+                            <label class="filter-label">Date Range</label>
+                            <select class="filter-select" id="date-range-filter">
+                                <option value="all">All Time</option>
+                                <option value="today">Today</option>
+                                <option value="week">Last Week</option>
+                                <option value="month">Last Month</option>
+                                <option value="year">Last Year</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="search-results" id="ioc-search-results" style="display: none;">
+                        <h5>Search Results</h5>
+                        <div class="results-list" id="ioc-results-list">
+                            <!-- Search results will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Threat Intelligence specific JavaScript
+let threatLandscapeChart;
+let threatSeverityChart;
+let miniCharts = {};
+
+// Initialize threat intelligence page
+document.addEventListener('DOMContentLoaded', function() {
+    initializeThreatCharts();
+    loadThreatData();
+    initializeSearch();
+});
+
+function initializeThreatCharts() {
+    // Threat Landscape Chart
+    const ctx1 = document.getElementById('threatLandscapeChart').getContext('2d');
+    threatLandscapeChart = new Chart(ctx1, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Malware',
+                data: [],
+                borderColor: '#ef4444',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                tension: 0.4,
+                fill: true
+            }, {
+                label: 'Phishing',
+                data: [],
+                borderColor: '#f97316',
+                backgroundColor: 'rgba(249, 115, 22, 0.1)',
+                tension: 0.4,
+                fill: true
+            }, {
+                label: 'Exploits',
+                data: [],
+                borderColor: '#eab308',
+                backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                tension: 0.4,
+                fill: true
+            }, {
+                label: 'DDoS',
+                data: [],
+                borderColor: '#8b5cf6',
+                backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    titleColor: '#f1f5f9',
+                    bodyColor: '#cbd5e1',
+                    borderColor: '#334155',
+                    borderWidth: 1,
+                    padding: 12,
+                    displayColors: true
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        color: 'rgba(148, 163, 184, 0.1)',
+                        drawBorder: false
+                    },
+                    ticks: {
+                        color: '#94a3b8'
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(148, 163, 184, 0.1)',
+                        drawBorder: false
+                    },
+                    ticks: {
+                        color: '#94a3b8'
+                    }
+                }
+            }
+        }
+    });
+
+    // Threat Severity Chart
+    const ctx2 = document.getElementById('threatSeverityChart').getContext('2d');
+    threatSeverityChart = new Chart(ctx2, {
+        type: 'doughnut',
+        data: {
+            labels: ['Critical', 'High', 'Medium', 'Low'],
+            datasets: [{
+                data: [5, 15, 35, 45],
+                backgroundColor: [
+                    '#ef4444',
+                    '#f97316',
+                    '#eab308',
+                    '#10b981'
+                ],
+                borderWidth: 0,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    titleColor: '#f1f5f9',
+                    bodyColor: '#cbd5e1',
+                    borderColor: '#334155',
+                    borderWidth: 1,
+                    padding: 12,
+                    callbacks: {
+                        label: function(context) {
+                            return context.label + ': ' + context.parsed + '%';
+                        }
+                    }
+                }
+            },
+            cutout: '70%'
+        }
+    });
+
+    // Initialize mini charts
+    initializeMiniCharts();
+}
+
+function loadThreatData() {
+    // Load threat intelligence data
+    fetch('/api/threats/metrics')
+        .then(response => response.json())
+        .then(data => {
+            updateThreatMetrics(data);
+            updateThreatsTimeline(data.threats);
+            updateIOCStats(data.ioc_stats);
+            updateFeedStatus(data.feeds);
+            removeSkeletons();
+        })
+        .catch(error => {
+            console.error('Error loading threat data:', error);
+            showErrorMessage('Failed to load threat intelligence data');
+        });
+}
+
+function updateThreatMetrics(data) {
+    // Update status cards
+    document.getElementById('ioc-count').textContent = data.total_iocs || 0;
+    document.getElementById('threats-blocked').textContent = data.threats_blocked || 0;
+    document.getElementById('active-threats').textContent = data.active_threats || 0;
+    
+    // Update threat severity counts
+    document.getElementById('critical-count').textContent = data.threat_levels?.critical || 0;
+    document.getElementById('high-count').textContent = data.threat_levels?.high || 0;
+    document.getElementById('medium-count').textContent = data.threat_levels?.medium || 0;
+    document.getElementById('low-count').textContent = data.threat_levels?.low || 0;
+    
+    // Update charts
+    updateThreatCharts(data);
+}
+
+function updateThreatsTimeline(threats) {
+    const timeline = document.getElementById('threats-timeline');
+    timeline.innerHTML = '';
+    
+    if (threats.length === 0) {
+        timeline.innerHTML = `
+            <div class="timeline-item">
+                <div class="timeline-marker">
+                    <i class="fas fa-shield-alt text-success"></i>
+                </div>
+                <div class="timeline-content">
+                    <div class="timeline-header">
+                        <span class="timeline-title">No Active Threats</span>
+                        <span class="timeline-time">Now</span>
+                    </div>
+                    <div class="timeline-body">
+                        <p>System is protected with no active threats detected.</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    threats.slice(0, 5).forEach(threat => {
+        const severityClass = getSeverityClass(threat.severity);
+        const timelineItem = document.createElement('div');
+        timelineItem.className = 'timeline-item fade-in';
+        timelineItem.innerHTML = `
+            <div class="timeline-marker">
+                <i class="fas fa-exclamation-triangle ${severityClass}"></i>
+            </div>
+            <div class="timeline-content">
+                <div class="timeline-header">
+                    <span class="timeline-title">${threat.threat_type}</span>
+                    <span class="timeline-time">${formatTime(threat.timestamp)}</span>
+                </div>
+                <div class="timeline-body">
+                    <p><strong>${threat.ioc_type}:</strong> ${threat.ioc_value}</p>
+                    <p><strong>Severity:</strong> ${threat.severity}</p>
+                    ${threat.description ? `<p>${threat.description}</p>` : ''}
+                </div>
+            </div>
+        `;
+        timeline.appendChild(timelineItem);
+    });
+}
+
+function updateIOCStats(stats) {
+    document.getElementById('file-hashes').textContent = stats.file_hashes || 0;
+    document.getElementById('ip-addresses').textContent = stats.ip_addresses || 0;
+    document.getElementById('domains').textContent = stats.domains || 0;
+    document.getElementById('email-addresses').textContent = stats.email_addresses || 0;
+}
+
+function updateFeedStatus(feeds) {
+    const feedList = document.querySelector('.feed-list');
+    if (!feedList || !feeds) return;
+    
+    feedList.innerHTML = '';
+    feeds.forEach(feed => {
+        const statusClass = feed.status === 'active' ? 'online' : feed.status === 'warning' ? 'warning' : 'offline';
+        const feedItem = document.createElement('div');
+        feedItem.className = 'feed-item fade-in';
+        feedItem.innerHTML = `
+            <div class="feed-status ${statusClass}">
+                <i class="fas fa-${statusClass === 'online' ? 'circle' : statusClass === 'warning' ? 'exclamation-triangle' : 'times-circle'}"></i>
+            </div>
+            <div class="feed-info">
+                <h5>${feed.name}</h5>
+                <p>Updated ${formatTime(feed.last_updated)}</p>
+                <div class="feed-stats">
+                    <span>IOCs: ${feed.ioc_count}</span>
+                    <span>Quality: ${feed.quality}</span>
+                </div>
+            </div>
+            <div class="feed-actions">
+                <button class="btn btn-sm btn-outline" onclick="toggleFeed('${feed.id}')">
+                    <i class="fas fa-${feed.status === 'active' ? 'pause' : 'play'}"></i>
+                </button>
+            </div>
+        `;
+        feedList.appendChild(feedItem);
+    });
+}
+
+function updateThreatCharts(data) {
+    const timestamp = new Date().toLocaleTimeString();
+    
+    // Update threat landscape chart
+    if (threatLandscapeChart && data.threat_types) {
+        if (threatLandscapeChart.data.labels.length > 20) {
+            threatLandscapeChart.data.labels.shift();
+            threatLandscapeChart.data.datasets.forEach(dataset => dataset.data.shift());
+        }
+        
+        threatLandscapeChart.data.labels.push(timestamp);
+        threatLandscapeChart.data.datasets[0].data.push(data.threat_types.malware || 0);
+        threatLandscapeChart.data.datasets[1].data.push(data.threat_types.phishing || 0);
+        threatLandscapeChart.data.datasets[2].data.push(data.threat_types.exploits || 0);
+        threatLandscapeChart.data.datasets[3].data.push(data.threat_types.ddos || 0);
+        threatLandscapeChart.update('none');
+    }
+    
+    // Update threat severity chart
+    if (threatSeverityChart && data.threat_levels) {
+        const total = Object.values(data.threat_levels).reduce((a, b) => a + b, 0);
+        if (total > 0) {
+            threatSeverityChart.data.datasets[0].data = [
+                (data.threat_levels.critical / total) * 100,
+                (data.threat_levels.high / total) * 100,
+                (data.threat_levels.medium / total) * 100,
+                (data.threat_levels.low / total) * 100
+            ];
+            threatSeverityChart.update('none');
+        }
+    }
+}
+
+function updateThreatChart(range) {
+    document.querySelectorAll('.chart-option').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector(`[data-range="${range}"]`).classList.add('active');
+    
+    // Load chart data for specified range
+    loadThreatChartData(range);
+}
+
+function loadThreatChartData(range) {
+    fetch(`/api/threats/chart-data?range=${range}`)
+        .then(response => response.json())
+        .then(data => {
+            updateThreatLandscapeChart(data);
+        })
+        .catch(error => {
+            console.error('Error loading threat chart data:', error);
+        });
+}
+
+function updateThreatFeeds() {
+    showStatusMessage('Updating threat intelligence feeds...', 'info');
+    
+    fetch('/api/threats/update-feeds', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': getCSRFToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showStatusMessage(data.message, 'success');
+            loadThreatData(); // Reload data
+        } else {
+            showErrorMessage(data.message || 'Failed to update threat feeds');
+        }
+    })
+    .catch(error => {
+        console.error('Error updating threat feeds:', error);
+        showErrorMessage('Failed to update threat intelligence feeds');
+    });
+}
+
+function importIOCs() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,.csv,.txt,.stix';
+    input.onchange = function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            uploadIOCFile(file);
+        }
+    };
+    input.click();
+}
+
+function uploadIOCFile(file) {
+    const formData = new FormData();
+    formData.append('ioc_file', file);
+    
+    showStatusMessage('Importing IOCs...', 'info');
+    
+    fetch('/api/threats/import-iocs', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRF-Token': getCSRFToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showStatusMessage(`Successfully imported ${data.imported_count} IOCs`, 'success');
+            loadThreatData(); // Reload data
+        } else {
+            showErrorMessage(data.message || 'Failed to import IOCs');
+        }
+    })
+    .catch(error => {
+        console.error('Error importing IOCs:', error);
+        showErrorMessage('Failed to import indicators of compromise');
+    });
+}
+
+function exportIOCs() {
+    showStatusMessage('Exporting IOC database...', 'info');
+    
+    fetch('/api/threats/export-iocs')
+        .then(response => response.blob())
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ioc_database_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            showStatusMessage('IOC database exported successfully', 'success');
+        })
+        .catch(error => {
+            console.error('Error exporting IOCs:', error);
+            showErrorMessage('Failed to export IOC database');
+        });
+}
+
+function scanIOCs() {
+    showStatusMessage('Scanning system against IOCs...', 'info');
+    
+    fetch('/api/threats/scan-iocs', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': getCSRFToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showStatusMessage(`IOC scan completed. Found ${data.matches_found} matches.`, 'success');
+        } else {
+            showErrorMessage(data.message || 'Failed to scan IOCs');
+        }
+    })
+    .catch(error => {
+        console.error('Error scanning IOCs:', error);
+        showErrorMessage('Failed to scan against indicators of compromise');
+    });
+}
+
+function configureFeeds() {
+    window.location.href = '/config#threat-feeds';
+}
+
+function generateReport() {
+    showStatusMessage('Generating threat intelligence report...', 'info');
+    
+    fetch('/api/threats/generate-report', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': getCSRFToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showStatusMessage(data.message, 'success');
+        } else {
+            showErrorMessage(data.message || 'Failed to generate report');
+        }
+    })
+    .catch(error => {
+        console.error('Error generating report:', error);
+        showErrorMessage('Failed to generate threat intelligence report');
+    });
+}
+
+function refreshThreats() {
+    loadThreatData();
+    showStatusMessage('Threat data refreshed', 'success');
+}
+
+function filterThreats(filter) {
+    console.log('Filtering threats:', filter);
+    // Implement threat filtering logic
+}
+
+function viewAllThreats() {
+    window.location.href = '/threats?view=all';
+}
+
+function toggleFeed(feedId) {
+    fetch(`/api/threats/toggle-feed/${feedId}`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-Token': getCSRFToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showStatusMessage(data.message, 'success');
+            loadThreatData(); // Reload data
+        } else {
+            showErrorMessage(data.message || 'Failed to toggle feed');
+        }
+    })
+    .catch(error => {
+        console.error('Error toggling feed:', error);
+        showErrorMessage('Failed to toggle threat feed');
+    });
+}
+
+function updateIOCDatabase() {
+    showStatusMessage('Updating IOC database...', 'info');
+    
+    fetch('/api/threats/update-ioc-db', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-Token': getCSRFToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showStatusMessage(data.message, 'success');
+            loadThreatData(); // Reload data
+        } else {
+            showErrorMessage(data.message || 'Failed to update IOC database');
+        }
+    })
+    .catch(error => {
+        console.error('Error updating IOC database:', error);
+        showErrorMessage('Failed to update IOC database');
+    });
+}
+
+function initializeSearch() {
+    const searchInput = document.getElementById('ioc-search');
+    const searchResults = document.getElementById('ioc-search-results');
+    const resultsList = document.getElementById('ioc-results-list');
+    
+    if (!searchInput || !searchResults || !resultsList) return;
+    
+    let searchTimeout;
+    
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        const query = this.value.trim();
+        
+        if (query.length < 3) {
+            searchResults.style.display = 'none';
+            return;
+        }
+        
+        searchTimeout = setTimeout(() => {
+            searchIOCs(query);
+        }, 500);
+    });
+    
+    // Filter change handlers
+    document.getElementById('ioc-type-filter').addEventListener('change', performSearch);
+    document.getElementById('threat-level-filter').addEventListener('change', performSearch);
+    document.getElementById('date-range-filter').addEventListener('change', performSearch);
+}
+
+function searchIOCs(query) {
+    const type = document.getElementById('ioc-type-filter').value;
+    const level = document.getElementById('threat-level-filter').value;
+    const dateRange = document.getElementById('date-range-filter').value;
+    
+    fetch(`/api/threats/search-iocs?q=${query}&type=${type}&level=${level}&range=${dateRange}`)
+        .then(response => response.json())
+        .then(data => {
+            displaySearchResults(data.results);
+        })
+        .catch(error => {
+            console.error('Error searching IOCs:', error);
+        });
+}
+
+function displaySearchResults(results) {
+    const searchResults = document.getElementById('ioc-search-results');
+    const resultsList = document.getElementById('ioc-results-list');
+    
+    if (!searchResults || !resultsList) return;
+    
+    if (results.length === 0) {
+        searchResults.style.display = 'block';
+        resultsList.innerHTML = '<p class="text-muted">No IOCs found matching your search criteria.</p>';
+        return;
+    }
+    
+    searchResults.style.display = 'block';
+    resultsList.innerHTML = '';
+    
+    results.forEach(ioc => {
+        const resultItem = document.createElement('div');
+        resultItem.className = 'search-result-item';
+        resultItem.innerHTML = `
+            <div class="result-type">${ioc.type}</div>
+            <div class="result-value">${ioc.value}</div>
+            <div class="result-details">
+                <span class="result-severity ${ioc.severity}">${ioc.severity}</span>
+                <span class="result-date">${formatTime(ioc.created_at)}</span>
+            </div>
+        `;
+        resultsList.appendChild(resultItem);
+    });
+}
+
+function performSearch() {
+    const query = document.getElementById('ioc-search').value.trim();
+    if (query.length >= 3) {
+        searchIOCs(query);
+    }
+}
+
+function clearSearch() {
+    document.getElementById('ioc-search').value = '';
+    document.getElementById('ioc-search-results').style.display = 'none';
+}
+
+function initializeMiniCharts() {
+    // Initialize mini charts for status cards
+    // Similar to dashboard mini charts implementation
+}
+
+function removeSkeletons() {
+    document.querySelectorAll('.skeleton').forEach(element => {
+        element.classList.remove('skeleton');
+    });
+}
+
+function getSeverityClass(severity) {
+    switch (severity.toLowerCase()) {
+        case 'critical': return 'text-danger';
+        case 'high': return 'text-warning';
+        case 'medium': return 'text-info';
+        case 'low': return 'text-success';
+        default: return 'text-secondary';
+    }
+}
+
+// Export functions for global access
+window.updateThreatFeeds = updateThreatFeeds;
+window.importIOCs = importIOCs;
+window.exportIOCs = exportIOCs;
+window.scanIOCs = scanIOCs;
+window.configureFeeds = configureFeeds;
+window.generateReport = generateReport;
+window.refreshThreats = refreshThreats;
+window.filterThreats = filterThreats;
+window.viewAllThreats = viewAllThreats;
+window.toggleFeed = toggleFeed;
+window.updateIOCDatabase = updateIOCDatabase;
+window.clearSearch = clearSearch;
+</script>
+
+<style>
+/* Threat Intelligence specific styles */
+.legend-color.malware { background: #ef4444; }
+.legend-color.phishing { background: #f97316; }
+.legend-color.exploit { background: #eab308; }
+.legend-color.ddos { background: #8b5cf6; }
+
+.threat-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: var(--radius-full);
+}
+
+.threat-indicator.critical { background: var(--danger-color); }
+.threat-indicator.high { background: var(--warning-color); }
+.threat-indicator.medium { background: var(--info-color); }
+.threat-indicator.low { background: var(--success-color); }
+
+.threat-info {
+    display: flex;
+    justify-content: space-between;
+    flex: 1;
+    font-size: 0.875rem;
+}
+
+.threat-label { color: var(--gray-300); }
+.threat-value { font-weight: 600; color: var(--gray-100); }
+
+.ioc-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-lg);
+}
+
+.ioc-stat-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg);
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: var(--radius-lg);
+    transition: var(--transition-normal);
+}
+
+.ioc-stat-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateY(-2px);
+}
+
+.ioc-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: var(--radius-lg);
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.25rem;
+}
+
+.ioc-info {
+    flex: 1;
+}
+
+.ioc-info h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--gray-100);
+    margin-bottom: var(--spacing-xs);
+}
+
+.ioc-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-light);
+    margin-bottom: var(--spacing-xs);
+}
+
+.ioc-change {
+    font-size: 0.75rem;
+    color: var(--gray-400);
+}
+
+.feed-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.feed-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg);
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: var(--radius-lg);
+    transition: var(--transition-normal);
+}
+
+.feed-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.feed-status {
+    width: 12px;
+    height: 12px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.5rem;
+    color: white;
+}
+
+.feed-status.online {
+    background: var(--success-color);
+}
+
+.feed-status.warning {
+    background: var(--warning-color);
+}
+
+.feed-status.offline {
+    background: var(--danger-color);
+}
+
+.feed-info {
+    flex: 1;
+}
+
+.feed-info h5 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--gray-100);
+    margin-bottom: var(--spacing-xs);
+}
+
+.feed-info p {
+    color: var(--gray-400);
+    margin-bottom: var(--spacing-sm);
+    font-size: 0.875rem;
+}
+
+.feed-stats {
+    display: flex;
+    gap: var(--spacing-lg);
+    font-size: 0.75rem;
+    color: var(--gray-500);
+}
+
+.feed-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.search-results {
+    margin-top: var(--spacing-lg);
+    padding: var(--spacing-lg);
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: var(--radius-lg);
+}
+
+.search-results h5 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--gray-100);
+    margin-bottom: var(--spacing-md);
+}
+
+.results-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.search-result-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    transition: var(--transition-normal);
+}
+
+.search-result-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.result-type {
+    min-width: 80px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.result-value {
+    flex: 1;
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    color: var(--gray-100);
+}
+
+.result-details {
+    display: flex;
+    gap: var(--spacing-md);
+    font-size: 0.75rem;
+}
+
+.result-severity {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-full);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+
+.result-severity.critical {
+    background: rgba(239, 68, 68, 0.2);
+    color: var(--danger-color);
+}
+
+.result-severity.high {
+    background: rgba(249, 115, 22, 0.2);
+    color: var(--warning-color);
+}
+
+.result-severity.medium {
+    background: rgba(6, 182, 212, 0.2);
+    color: var(--info-color);
+}
+
+.result-severity.low {
+    background: rgba(16, 185, 129, 0.2);
+    color: var(--success-color);
+}
+
+.result-date {
+    color: var(--gray-400);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .ioc-stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .feed-item {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .feed-actions {
+        margin-top: var(--spacing-md);
+    }
+    
+    .search-result-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-sm);
+    }
+    
+    .result-details {
+        width: 100%;
+        justify-content: space-between;
+    }
+}
+</style>
+{% endblock %}
