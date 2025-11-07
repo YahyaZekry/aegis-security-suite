@@ -17,8 +17,8 @@ import bcrypt
 from security_utils import SecurityLogger, InputValidator, rate_limiter
 
 # Database path
-AUTH_DB_PATH = os.path.join(os.environ.get('SECURITY_SUITE_HOME', '/opt/garuda-security-suite'), 
-                            'configs', 'web-dashboard', 'auth.db')
+# Use current working directory since we're running from project source
+AUTH_DB_PATH = os.path.join(os.getcwd(), 'configs', 'web-dashboard', 'auth.db')
 
 def ensure_auth_db():
     """Ensure authentication database exists and is properly initialized"""
@@ -45,7 +45,11 @@ def ensure_auth_db():
             locked_until TEXT,
             password_changed_at TEXT,
             two_factor_enabled BOOLEAN DEFAULT 0,
-            two_factor_secret TEXT
+            two_factor_secret TEXT,
+            password_reset_required BOOLEAN DEFAULT 0,
+            last_password_change TEXT,
+            login_attempts_24h INTEGER DEFAULT 0,
+            suspicious_login_count INTEGER DEFAULT 0
         )
         """)
         
@@ -133,23 +137,42 @@ def ensure_auth_db():
 def create_default_admin(cursor):
     """Create default admin user with enhanced security"""
     try:
-        default_password = "admin123"  # Should be changed on first login
+        # Generate a secure random password instead of hardcoded one
+        default_password = secrets.token_urlsafe(16)  # 16-character secure password
         salt = secrets.token_hex(32)  # Increased salt size
         password_hash = hash_password(default_password, salt)
         
         cursor.execute("""
-        INSERT INTO users (username, email, password_hash, salt, role, created_at, password_changed_at)
-        VALUES (?, ?, ?, ?, 'admin', ?, ?)
+        INSERT INTO users (username, email, password_hash, salt, role, created_at, password_changed_at, password_reset_required)
+        VALUES (?, ?, ?, ?, 'admin', ?, ?, 1)
         """, ('admin', 'admin@garuda.local', password_hash, salt,
                datetime.now().isoformat(), datetime.now().isoformat()))
         
         SecurityLogger.log_security_event('default_admin_created', {
             'username': 'admin',
-            'action': 'Default admin user created - password change required'
+            'action': 'Default admin user created with secure password - password change required'
         }, 'WARNING')
         
-        print("Default admin user created. Username: admin, Password: admin123")
+        print("=" * 60)
+        print("SECURITY NOTICE: Default admin user created")
+        print(f"Username: admin")
+        print(f"Password: {default_password}")
         print("Please change the default password immediately after first login.")
+        print("Store this password securely - it will not be shown again.")
+        print("=" * 60)
+        
+        # Save password to a secure file for recovery
+        try:
+            password_file = os.path.join(os.getcwd(), 'configs', 'web-dashboard', 'admin_password.txt')
+            os.makedirs(os.path.dirname(password_file), exist_ok=True)
+            with open(password_file, 'w') as f:
+                f.write(f"Admin Username: admin\n")
+                f.write(f"Admin Password: {default_password}\n")
+                f.write(f"Created: {datetime.now().isoformat()}\n")
+                f.write("IMPORTANT: Change this password immediately after first login!\n")
+            os.chmod(password_file, 0o600)  # Secure file permissions
+        except Exception as e:
+            print(f"Warning: Could not save password to file: {e}")
         
     except Exception as e:
         SecurityLogger.log_security_event('default_admin_creation_failed', {
@@ -208,7 +231,7 @@ def verify_password(password, stored_hash, salt):
     calculated_hash = hash_password(password, salt)
     return secrets.compare_digest(calculated_hash, stored_hash)
 
-def authenticate_user(username, password, ip_address=None, user_agent=None):
+def authenticate_user(username, password, ip_address=None, user_agent=None, mfa_token=None):
     """Authenticate user credentials with enhanced security"""
     try:
         # Validate input
@@ -220,7 +243,17 @@ def authenticate_user(username, password, ip_address=None, user_agent=None):
             }, 'WARNING')
             return {'success': False, 'error': 'Invalid credentials'}
         
-        # Check rate limiting
+        # Check password strength for new logins (prevent weak passwords)
+        if password:
+            password_check = check_password_strength(password)
+            if password_check['strength'] in ['very_weak', 'weak']:
+                SecurityLogger.log_security_event('weak_password_attempt', {
+                    'username': username,
+                    'ip_address': ip_address,
+                    'password_strength': password_check['strength']
+                }, 'WARNING')
+        
+        # Enhanced rate limiting with progressive delays
         allowed, rate_info = rate_limiter.is_allowed(ip_address or 'unknown', 'login', 5, 300)  # 5 attempts per 5 minutes
         if not allowed:
             SecurityLogger.log_security_event('login_rate_limit_exceeded', {
@@ -239,7 +272,9 @@ def authenticate_user(username, password, ip_address=None, user_agent=None):
         # Get user by username
         cursor.execute("""
         SELECT id, username, password_hash, salt, role, is_active,
-               failed_login_attempts, locked_until, last_login
+               failed_login_attempts, locked_until, last_login, two_factor_enabled,
+               two_factor_secret, password_reset_required, login_attempts_24h,
+               suspicious_login_count, last_password_change
         FROM users WHERE username = ?
         """, (username,))
         
@@ -254,7 +289,10 @@ def authenticate_user(username, password, ip_address=None, user_agent=None):
             conn.close()
             return {'success': False, 'error': 'Invalid credentials'}
         
-        user_id, username, stored_hash, salt, role, is_active, failed_attempts, locked_until, last_login = user
+        (user_id, username, stored_hash, salt, role, is_active, failed_attempts,
+         locked_until, last_login, two_factor_enabled, two_factor_secret,
+         password_reset_required, login_attempts_24h, suspicious_login_count,
+         last_password_change) = user
         
         # Check if account is locked
         if locked_until:
@@ -268,7 +306,7 @@ def authenticate_user(username, password, ip_address=None, user_agent=None):
                     'locked_until': locked_until
                 }, 'WARNING')
                 conn.close()
-                return {'success': False, 'error': 'Account temporarily locked'}
+                return {'success': False, 'error': f'Account locked until {lock_time.strftime("%Y-%m-%d %H:%M:%S")}'}
         
         # Check if account is active
         if not is_active:
@@ -283,9 +321,29 @@ def authenticate_user(username, password, ip_address=None, user_agent=None):
         
         # Verify password
         if verify_password(password, stored_hash, salt):
+            # Check MFA if enabled
+            if two_factor_enabled:
+                if not mfa_token:
+                    conn.close()
+                    return {
+                        'success': False,
+                        'error': 'MFA token required',
+                        'mfa_required': True
+                    }
+                
+                if not verify_mfa_token(two_factor_secret, mfa_token):
+                    SecurityLogger.log_security_event('mfa_authentication_failed', {
+                        'user_id': user_id,
+                        'username': username,
+                        'ip_address': ip_address
+                    }, 'WARNING')
+                    conn.close()
+                    return {'success': False, 'error': 'Invalid MFA token'}
+            
             # Reset failed attempts on successful login
             cursor.execute("""
-            UPDATE users SET failed_login_attempts = 0, locked_until = NULL, last_login = ?
+            UPDATE users SET failed_login_attempts = 0, locked_until = NULL, last_login = ?,
+                            login_attempts_24h = login_attempts_24h + 1
             WHERE id = ?
             """, (datetime.now().isoformat(), user_id))
             
@@ -306,12 +364,19 @@ def authenticate_user(username, password, ip_address=None, user_agent=None):
                             'previous_ip': last_session[0],
                             'time_since_last_login': str(time_since_last_login)
                         }, 'WARNING')
+                        
+                        # Increment suspicious login count
+                        cursor.execute("""
+                        UPDATE users SET suspicious_login_count = suspicious_login_count + 1
+                        WHERE id = ?
+                        """, (user_id,))
             
             SecurityLogger.log_security_event('authentication_success', {
                 'user_id': user_id,
                 'username': username,
                 'ip_address': ip_address,
-                'user_agent': user_agent
+                'user_agent': user_agent,
+                'mfa_used': two_factor_enabled
             })
             
             conn.commit()
@@ -321,15 +386,23 @@ def authenticate_user(username, password, ip_address=None, user_agent=None):
                 'success': True,
                 'user_id': user_id,
                 'username': username,
-                'role': role
+                'role': role,
+                'password_reset_required': password_reset_required
             }
         else:
-            # Increment failed attempts
+            # Increment failed attempts with progressive lockout
             failed_attempts += 1
             lock_account = False
             lock_until = None
             
-            if failed_attempts >= 5:
+            # Progressive lockout: 5 attempts = 30 min, 10 attempts = 2 hours, 15+ attempts = 24 hours
+            if failed_attempts >= 15:
+                lock_account = True
+                lock_until = (datetime.now() + timedelta(hours=24)).isoformat()
+            elif failed_attempts >= 10:
+                lock_account = True
+                lock_until = (datetime.now() + timedelta(hours=2)).isoformat()
+            elif failed_attempts >= 5:
                 lock_account = True
                 lock_until = (datetime.now() + timedelta(minutes=30)).isoformat()
             
@@ -350,7 +423,7 @@ def authenticate_user(username, password, ip_address=None, user_agent=None):
             conn.close()
             
             if lock_account:
-                return {'success': False, 'error': 'Account locked due to multiple failed attempts'}
+                return {'success': False, 'error': f'Account locked due to multiple failed attempts until {datetime.fromisoformat(lock_until).strftime("%Y-%m-%d %H:%M:%S")}'}
             else:
                 return {'success': False, 'error': 'Invalid credentials'}
                 
@@ -361,6 +434,77 @@ def authenticate_user(username, password, ip_address=None, user_agent=None):
             'error': str(e)
         }, 'ERROR')
         return {'success': False, 'error': 'Authentication system error'}
+
+def check_password_strength(password):
+    """Check password strength against security policies"""
+    if not password:
+        return {'strength': 0, 'issues': ['Password is required']}
+    
+    issues = []
+    score = 0
+    
+    # Length check
+    if len(password) < 12:  # Increased minimum length
+        issues.append('Password must be at least 12 characters long')
+    else:
+        score += 1
+    
+    if len(password) >= 16:
+        score += 1
+    
+    # Complexity checks
+    if not any(c.islower() for c in password):
+        issues.append('Password must contain lowercase letters')
+    else:
+        score += 1
+    
+    if not any(c.isupper() for c in password):
+        issues.append('Password must contain uppercase letters')
+    else:
+        score += 1
+    
+    if not any(c.isdigit() for c in password):
+        issues.append('Password must contain numbers')
+    else:
+        score += 1
+    
+    if not any(c in '!@#$%^&*()_+-=[]{}|;:,.<>?' for c in password):
+        issues.append('Password must contain special characters')
+    else:
+        score += 1
+    
+    # Common password check
+    common_passwords = ['password', '123456', 'admin', 'qwerty', 'letmein', 'welcome', 'changeme']
+    if password.lower() in common_passwords:
+        issues.append('Password is too common')
+        score = max(0, score - 2)
+    
+    # Determine strength
+    if score >= 6:
+        strength = 'very_strong'
+    elif score >= 5:
+        strength = 'strong'
+    elif score >= 4:
+        strength = 'medium'
+    elif score >= 2:
+        strength = 'weak'
+    else:
+        strength = 'very_weak'
+    
+    return {
+        'strength': strength,
+        'score': score,
+        'issues': issues
+    }
+
+def verify_mfa_token(secret, token):
+    """Verify multi-factor authentication token"""
+    try:
+        import pyotp
+        totp = pyotp.TOTP(secret)
+        return totp.verify(token, valid_window=1)  # Allow 1 step tolerance
+    except:
+        return False
 
 def create_user_session(user_id, username, role, ip_address=None, user_agent=None):
     """Create secure user session with enhanced security"""
@@ -463,18 +607,59 @@ def validate_session(session_id, ip_address=None):
         
         # Check for suspicious activity
         security_issues = []
+        risk_score = 0
         
-        # IP address change detection
+        # IP address change detection (high risk)
         if stored_ip and ip_address and stored_ip != ip_address:
-            security_issues.append(f"IP address changed from {stored_ip} to {ip_address}")
+            # Check if it's a private network change (less suspicious)
+            if not (is_private_ip(stored_ip) and is_private_ip(ip_address)):
+                security_issues.append(f"IP address changed from {stored_ip} to {ip_address}")
+                risk_score += 3
         
-        # User agent change detection
+        # User agent change detection (medium risk)
         if stored_user_agent and current_user_agent and stored_user_agent != current_user_agent:
-            security_issues.append("User agent changed")
+            # Check if it's just a version update (less suspicious)
+            if not is_browser_version_update(stored_user_agent, current_user_agent):
+                security_issues.append("User agent changed")
+                risk_score += 2
         
-        # Device fingerprint change detection
+        # Device fingerprint change detection (high risk)
         if stored_fingerprint and current_fingerprint and stored_fingerprint != current_fingerprint:
             security_issues.append("Device fingerprint changed")
+            risk_score += 3
+        
+        # Geographic location check (if IP changed significantly)
+        if stored_ip and ip_address and stored_ip != ip_address:
+            try:
+                from security_utils import get_ip_geolocation
+                stored_geo = get_ip_geolocation(stored_ip)
+                current_geo = get_ip_geolocation(ip_address)
+                
+                if stored_geo and current_geo:
+                    # Calculate distance between locations
+                    distance = calculate_geographic_distance(
+                        stored_geo.get('latitude'), stored_geo.get('longitude'),
+                        current_geo.get('latitude'), current_geo.get('longitude')
+                    )
+                    
+                    # If distance > 1000km in < 1 hour, very suspicious
+                    if distance > 1000:
+                        security_issues.append(f"Impossible travel detected: {distance:.0f}km")
+                        risk_score += 5
+            except ImportError:
+                # Geolocation not available, skip this check
+                pass
+        
+        # Check for concurrent sessions from different IPs
+        cursor.execute("""
+        SELECT COUNT(*) FROM user_sessions
+        WHERE user_id = ? AND is_active = 1 AND ip_address != ? AND id != ?
+        """, (user_id, ip_address, session_id))
+        
+        concurrent_sessions = cursor.fetchone()[0]
+        if concurrent_sessions > 0:
+            security_issues.append(f"Concurrent sessions from different IPs detected")
+            risk_score += 2
         
         # Log security issues if any
         if security_issues:
@@ -483,14 +668,23 @@ def validate_session(session_id, ip_address=None):
                 'username': username,
                 'session_id': session_id[:16] + '...',
                 'issues': security_issues,
-                'ip_address': ip_address
+                'risk_score': risk_score,
+                'ip_address': ip_address,
+                'stored_ip': stored_ip
             }, 'WARNING')
             
             # For high-risk changes, invalidate session
-            if len(security_issues) > 1:
+            if risk_score >= 5:
                 cursor.execute("UPDATE user_sessions SET is_active = 0 WHERE id = ?", (session_id,))
                 conn.commit()
                 conn.close()
+                SecurityLogger.log_security_event('session_invalidated_high_risk', {
+                    'user_id': user_id,
+                    'username': username,
+                    'session_id': session_id[:16] + '...',
+                    'risk_score': risk_score,
+                    'reason': 'High-risk session anomaly detected'
+                }, 'CRITICAL')
                 return None
         
         # Update session activity
@@ -517,6 +711,72 @@ def validate_session(session_id, ip_address=None):
             'error': str(e)
         }, 'ERROR')
         return None
+
+def is_private_ip(ip):
+    """Check if IP address is private"""
+    try:
+        import ipaddress
+        ip_obj = ipaddress.ip_address(ip)
+        return ip_obj.is_private
+    except:
+        # Fallback to basic checks
+        if ip.startswith('192.168.') or ip.startswith('10.') or ip.startswith('172.'):
+            return True
+        if ip.startswith('127.') or ip == 'localhost':
+            return True
+        return False
+
+def is_browser_version_update(old_ua, new_ua):
+    """Check if user agent change is just a browser version update"""
+    try:
+        # Extract browser name and version
+        import re
+        
+        # Chrome pattern
+        chrome_pattern = r'Chrome/(\d+\.\d+\.\d+\.\d+)'
+        old_chrome = re.search(chrome_pattern, old_ua)
+        new_chrome = re.search(chrome_pattern, new_ua)
+        
+        if old_chrome and new_chrome:
+            # Check if major version is the same
+            old_version = old_chrome.group(1).split('.')[0]
+            new_version = new_chrome.group(1).split('.')[0]
+            return old_version == new_version
+        
+        # Firefox pattern
+        firefox_pattern = r'Firefox/(\d+\.\d+)'
+        old_firefox = re.search(firefox_pattern, old_ua)
+        new_firefox = re.search(firefox_pattern, new_ua)
+        
+        if old_firefox and new_firefox:
+            # Check if major version is the same
+            old_version = old_firefox.group(1).split('.')[0]
+            new_version = new_firefox.group(1).split('.')[0]
+            return old_version == new_version
+        
+        return False
+    except:
+        return False
+
+def calculate_geographic_distance(lat1, lon1, lat2, lon2):
+    """Calculate distance between two geographic coordinates in kilometers"""
+    try:
+        from math import radians, cos, sin, asin, sqrt
+        
+        # Convert decimal degrees to radians
+        lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+        
+        # Haversine formula
+        dlat = lat2 - lat1
+        dlon = lon2 - lon1
+        a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+        c = 2 * asin(sqrt(a))
+        
+        # Radius of earth in kilometers
+        r = 6371
+        return c * r
+    except:
+        return 0
 
 def destroy_session(session_id):
     """Destroy user session securely"""

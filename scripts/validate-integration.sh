@@ -15,7 +15,7 @@ NC='\033[0m' # No Color
 
 # Test configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SECURITY_SUITE_HOME="${SECURITY_SUITE_HOME:-/opt/garuda-security-suite}"
+SECURITY_SUITE_HOME="${SECURITY_SUITE_HOME:-$(dirname "$(dirname "$(readlink -f "$0")")")}"
 DASHBOARD_PORT="8080"
 VALIDATION_PASSED=0
 VALIDATION_FAILED=0

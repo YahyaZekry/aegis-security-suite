@@ -45,7 +45,7 @@ A comprehensive web-based interface for monitoring and managing the Garuda Secur
 
 1. **Navigate to the dashboard directory:**
    ```bash
-   cd /opt/garuda-security-suite/src/dashboard
+   cd \$SECURITY_SUITE_HOME/web-dashboard
    ```
 
 2. **Make the startup script executable:**
@@ -70,7 +70,7 @@ A comprehensive web-based interface for monitoring and managing the Garuda Secur
 
 2. **Set up environment:**
    ```bash
-   export SECURITY_SUITE_HOME=/opt/garuda-security-suite
+   export SECURITY_SUITE_HOME=\${SECURITY_SUITE_HOME:-$HOME/security-suite}
    export FLASK_APP=app.py
    ```
 
@@ -203,9 +203,9 @@ The dashboard provides RESTful API endpoints for integration:
 
 ### Logs
 
-- **Application Log**: `/opt/garuda-security-suite/data/logs/web-dashboard.log`
+- **Application Log**: `$SECURITY_SUITE_HOME/logs/web-dashboard.log`
 - **Startup Log**: `/tmp/garuda-dashboard-startup.log`
-- **Security Suite Logs**: `/opt/garuda-security-suite/data/logs/`
+- **Security Suite Logs**: `$SECURITY_SUITE_HOME/logs/`
 
 ### Debug Mode
 

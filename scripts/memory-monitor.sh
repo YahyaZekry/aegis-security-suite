@@ -4,15 +4,23 @@
 
 source "$(dirname "$0")/common-functions.sh"
 
-# Memory monitoring configuration
-MEMORY_THRESHOLD_WARNING=80
-MEMORY_THRESHOLD_CRITICAL=90
-PROCESS_MEMORY_LIMIT=500  # MB
-CHECK_INTERVAL=30  # seconds
-
 # Get security suite home directory
 SCRIPT_DIR="$(dirname "$0")"
 SECURITY_SUITE_HOME="$(dirname "$SCRIPT_DIR")"
+
+# Load configuration from security-config.conf
+CONFIG_FILE="$SECURITY_SUITE_HOME/configs/security-config.conf"
+if [ -f "$CONFIG_FILE" ]; then
+    source "$CONFIG_FILE"
+else
+    # Fallback to default values if config file doesn't exist
+    MEMORY_THRESHOLD_WARNING=85
+    MEMORY_THRESHOLD_CRITICAL=95
+    PROCESS_MEMORY_LIMIT=2000  # MB
+fi
+
+# Memory monitoring configuration
+CHECK_INTERVAL=30  # seconds
 
 # Log file for memory monitoring
 MEMORY_LOG="$SECURITY_SUITE_HOME/logs/memory-monitor.log"

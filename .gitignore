@@ -34,6 +34,16 @@ tests/temp_line
 tests/*.backup
 tests/*.tmp
 
+# Test scripts and reports
+test_*.py
+test_*.sh
+*test_report*.json
+*verification_report*.json
+dashboard_testing_consolidated_report.*
+comprehensive_*_test_report*.json
+ui_test_report*.json
+security_test_report*.json
+
 # Security scan results and logs
 *.scan
 *.quarantine

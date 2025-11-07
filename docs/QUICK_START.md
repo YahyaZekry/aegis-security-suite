@@ -166,7 +166,7 @@ ls -la
 cat configs/security-config.conf
 
 # Check service status
-./src/core/scripts/start-security-suite.sh status
+./scripts/start-security-suite.sh status
 ```
 
 Expected output should show:
@@ -193,10 +193,10 @@ The easiest way to start all security services:
 cd ~/security-suite
 
 # Start all services
-./src/core/scripts/start-security-suite.sh start all
+./scripts/start-security-suite.sh start all
 
 # Check service status
-./src/core/scripts/start-security-suite.sh status
+./scripts/start-security-suite.sh status
 ```
 
 Expected output should show:
@@ -214,15 +214,15 @@ Start individual services as needed:
 
 ```bash
 # Start web dashboard only
-./src/core/scripts/start-security-suite.sh start web-dashboard
+./scripts/start-security-suite.sh start web-dashboard
 
 # Start behavioral analysis only
-./src/core/scripts/start-security-suite.sh start behavioral-monitor
+./scripts/start-security-suite.sh start behavioral-monitor
 
 # Start scan services only
-./src/core/scripts/start-security-suite.sh start daily-scan
-./src/core/scripts/start-security-suite.sh start weekly-scan
-./src/core/scripts/start-security-suite.sh start monthly-scan
+./scripts/start-security-suite.sh start daily-scan
+./scripts/start-security-suite.sh start weekly-scan
+./scripts/start-security-suite.sh start monthly-scan
 ```
 
 ### Service Status Verification
@@ -231,10 +231,10 @@ Check the status of all services:
 
 ```bash
 # Check all services
-./src/core/scripts/start-security-suite.sh status
+./scripts/start-security-suite.sh status
 
 # Check specific service
-./src/core/scripts/start-security-suite.sh status web-dashboard
+./scripts/start-security-suite.sh status web-dashboard
 
 # Check systemd timers
 systemctl --user list-timers | grep security
@@ -244,16 +244,16 @@ systemctl --user list-timers | grep security
 
 ```bash
 # Restart all services
-./src/core/scripts/start-security-suite.sh restart all
+./scripts/start-security-suite.sh restart all
 
 # Stop all services
-./src/core/scripts/start-security-suite.sh stop all
+./scripts/start-security-suite.sh stop all
 
 # Restart specific service
-./src/core/scripts/start-security-suite.sh restart web-dashboard
+./scripts/start-security-suite.sh restart web-dashboard
 
 # Get help with service management
-./src/core/scripts/start-security-suite.sh help
+./scripts/start-security-suite.sh help
 ```
 
 ---
@@ -293,7 +293,7 @@ Use the default credentials for first-time access:
 # 6. Confirm new password
 
 # Method 2: Using command line
-cd ~/security-suite/src/dashboard
+cd ~/security-suite/web-dashboard
 python3 -c "
 from auth import hash_password, update_password
 import sqlite3
@@ -345,10 +345,10 @@ Verify your installation with the comprehensive test suite:
 cd ~/security-suite
 
 # Run comprehensive test suite
-./test-suite-comprehensive.sh
+$SECURITY_SUITE_HOME/test-suite-comprehensive.sh
 
 # Check test results
-cat ~/security-suite/test-results/test-report-*.txt
+cat $HOME/security-suite/test-results/test-report-*.txt
 ```
 
 Expected output should show:
@@ -372,7 +372,7 @@ Run quick tests to verify core functionality:
 
 ```bash
 # Test security scanning
-cd ~/security-suite/src/core/scripts
+cd $SECURITY_SUITE_HOME/scripts
 ./security-daily-scan.sh
 
 # Test behavioral analysis
@@ -412,7 +412,7 @@ Test behavioral analysis functionality:
 
 ```bash
 # Initialize behavioral analysis
-cd ~/security-suite/src/core/scripts
+cd $SECURITY_SUITE_HOME/scripts
 ./behavioral-analysis.sh init
 
 # Create baseline (7 days recommended)
@@ -422,7 +422,7 @@ cd ~/security-suite/src/core/scripts
 ./behavioral-analysis.sh detect
 
 # Check results
-sqlite3 ~/security-suite/configs/behavioral_analysis/behavioral_data.db "SELECT * FROM anomaly_events;"
+sqlite3 $HOME/security-suite/configs/behavioral_analysis/behavioral_data.db "SELECT * FROM anomaly_events;"
 ```
 
 ### Incident Response Testing
@@ -431,7 +431,7 @@ Test incident response functionality:
 
 ```bash
 # Initialize incident response
-cd ~/security-suite/src/core/scripts
+cd $SECURITY_SUITE_HOME/scripts
 ./incident-response.sh init
 
 # Create test incident
@@ -442,7 +442,7 @@ echo "test file" > /tmp/test_file.txt
 ./incident-response.sh quarantine "TEST_001" "/tmp/test_file.txt"
 
 # Check incident was created
-sqlite3 ~/security-suite/configs/incident_response/incidents.db "SELECT * FROM incidents;"
+sqlite3 $HOME/security-suite/configs/incident_response/incidents.db "SELECT * FROM incidents;"
 ```
 
 ---
@@ -534,14 +534,14 @@ The main dashboard provides a comprehensive overview of your security status:
 # Error: "Failed to enable unit: behavioral-monitor.timer does not exist"
 
 # Solution 1: Install behavioral monitor service
-cd ~/security-suite
-./src/core/scripts/install-behavioral-monitor-service.sh
+cd $SECURITY_SUITE_HOME
+./scripts/install-behavioral-monitor-service.sh
 
 # Solution 2: Start behavioral monitor manually
-./src/core/scripts/start-security-suite.sh start behavioral-monitor
+./scripts/start-security-suite.sh start behavioral-monitor
 
 # Solution 3: Check if service files exist
-ls -la src/core/scripts/behavioral-monitor.*
+ls -la scripts/behavioral-monitor.*
 ```
 
 #### Problem: Dashboard Start Script Not Found
@@ -549,13 +549,13 @@ ls -la src/core/scripts/behavioral-monitor.*
 # Error: "No such file or directory" when accessing dashboard
 
 # Solution 1: Check dashboard directory
-ls -la ~/security-suite/src/dashboard/start-dashboard.sh
+ls -la $HOME/security-suite/web-dashboard/start-dashboard.sh
 
 # Solution 2: Make script executable
-chmod +x ~/security-suite/src/dashboard/start-dashboard.sh
+chmod +x $HOME/security-suite/web-dashboard/start-dashboard.sh
 
 # Solution 3: Start dashboard manually
-cd ~/security-suite/src/dashboard
+cd $HOME/security-suite/web-dashboard
 ./start-dashboard.sh start
 ```
 
@@ -565,15 +565,15 @@ cd ~/security-suite/src/dashboard
 
 # Solution 1: Use absolute paths
 export SECURITY_SUITE_HOME="$(pwd)"
-./src/core/scripts/start-security-suite.sh start all
+./scripts/start-security-suite.sh start all
 
 # Solution 2: Check script permissions
-chmod +x src/core/scripts/start-security-suite.sh
-chmod +x src/core/scripts/*.sh
+chmod +x scripts/start-security-suite.sh
+chmod +x scripts/*.sh
 
 # Solution 3: Verify directory structure
-ls -la src/core/scripts/
-ls -la src/dashboard/
+ls -la scripts/
+ls -la web-dashboard/
 ```
 
 ### Service Startup Failures
@@ -581,13 +581,13 @@ ls -la src/dashboard/
 #### Problem: Services Won't Start
 ```bash
 # Check service status
-./src/core/scripts/start-security-suite.sh status
+./scripts/start-security-suite.sh status
 
 # Check service logs
 journalctl --user -u security-daily-scan.service --no-pager
 
 # Restart services
-./src/core/scripts/start-security-suite.sh restart all
+./scripts/start-security-suite.sh restart all
 
 # Check for missing systemd timers
 systemctl --user list-unit-files | grep security
@@ -596,7 +596,7 @@ systemctl --user list-unit-files | grep security
 #### Problem: Dashboard Not Accessible
 ```bash
 # Check dashboard status
-cd ~/security-suite/src/dashboard
+cd $HOME/security-suite/web-dashboard
 ./start-dashboard.sh status
 
 # Check port availability
@@ -610,11 +610,11 @@ sudo ufw allow 8080/tcp
 
 # Alternative: Start dashboard with explicit path
 export SECURITY_SUITE_HOME="$HOME/security-suite"
-cd ~/security-suite/web-dashboard
+cd $HOME/security-suite/web-dashboard
 ./start-dashboard.sh start
 
 # Check dashboard logs
-tail -n 50 ~/security-suite/logs/web-dashboard.log
+tail -n 50 $HOME/security-suite/logs/web-dashboard.log
 ```
 
 ### Database Connection Issues
@@ -622,29 +622,29 @@ tail -n 50 ~/security-suite/logs/web-dashboard.log
 #### Problem: Database Not Found
 ```bash
 # Check database files
-ls -la ~/security-suite/configs/*/*.db
+ls -la $HOME/security-suite/configs/*/*.db
 
 # Initialize databases
-cd ~/security-suite/src/core/scripts
+cd $SECURITY_SUITE_HOME/scripts
 ./behavioral-analysis.sh init
 ./incident-response.sh init
 
 # Check database permissions
-chmod 600 ~/security-suite/configs/*/*.db
-chmod 700 ~/security-suite/configs/*/
+chmod 600 $HOME/security-suite/configs/*/*.db
+chmod 700 $HOME/security-suite/configs/*/
 ```
 
 #### Problem: Database Permission Errors
 ```bash
 # Fix database permissions
-chmod 600 ~/security-suite/configs/*/*.db
-chmod 700 ~/security-suite/configs/*/
+chmod 600 $HOME/security-suite/configs/*/*.db
+chmod 700 $HOME/security-suite/configs/*/
 
 # Fix ownership
-sudo chown -R $(whoami):$(whoami) ~/security-suite/configs/
+sudo chown -R $(whoami):$(whoami) $HOME/security-suite/configs/
 
 # Remove database locks
-rm -f ~/security-suite/configs/*/*.db-journal
+rm -f $HOME/security-suite/configs/*/*.db-journal
 ```
 
 ### Permission Problems
@@ -746,19 +746,19 @@ sqlite3 ~/security-suite/configs/behavioral_analysis/behavioral_data.db "SELECT 
 
 ```bash
 # Start all services (with workarounds)
-cd ~/security-suite
+cd $SECURITY_SUITE_HOME
 export SECURITY_SUITE_HOME="$(pwd)"
-./src/core/scripts/start-security-suite.sh start all
+./scripts/start-security-suite.sh start all
 
 # Alternative: Start services individually
-./src/core/scripts/start-security-suite.sh start web-dashboard
-./src/core/scripts/start-security-suite.sh start behavioral-monitor
+./scripts/start-security-suite.sh start web-dashboard
+./scripts/start-security-suite.sh start behavioral-monitor
 
 # Install behavioral monitor service if needed
-./src/core/scripts/install-behavioral-monitor-service.sh
+./scripts/install-behavioral-monitor-service.sh
 
 # Check service status
-./src/core/scripts/start-security-suite.sh status
+./scripts/start-security-suite.sh status
 
 # Access dashboard
 http://localhost:8080
@@ -768,13 +768,13 @@ Username: admin
 Password: garuda123
 
 # Run comprehensive tests
-./test-suite-comprehensive.sh
+$SECURITY_SUITE_HOME/test-suite-comprehensive.sh
 
 # Restart all services
-./scripts/start-security-suite.sh restart all
+$SECURITY_SUITE_HOME/scripts/start-security-suite.sh restart all
 
 # Stop all services
-./scripts/start-security-suite.sh stop all
+$SECURITY_SUITE_HOME/scripts/start-security-suite.sh stop all
 ```
 
 ### Dashboard URLs
@@ -817,43 +817,43 @@ Password: garuda123
 ```bash
 # Start individual services (with workarounds)
 export SECURITY_SUITE_HOME="$HOME/security-suite"
-./scripts/start-security-suite.sh start web-dashboard
-./scripts/start-security-suite.sh start behavioral-monitor
-./scripts/start-security-suite.sh start daily-scan
+$SECURITY_SUITE_HOME/scripts/start-security-suite.sh start web-dashboard
+$SECURITY_SUITE_HOME/scripts/start-security-suite.sh start behavioral-monitor
+$SECURITY_SUITE_HOME/scripts/start-security-suite.sh start daily-scan
 
 # Install behavioral monitor timer if missing
-./scripts/install-behavioral-monitor-service.sh
+$SECURITY_SUITE_HOME/scripts/install-behavioral-monitor-service.sh
 
 # Restart individual services
-./scripts/start-security-suite.sh restart web-dashboard
-./scripts/start-security-suite.sh restart behavioral-monitor
+$SECURITY_SUITE_HOME/scripts/start-security-suite.sh restart web-dashboard
+$SECURITY_SUITE_HOME/scripts/start-security-suite.sh restart behavioral-monitor
 
 # Stop individual services
-./scripts/start-security-suite.sh stop web-dashboard
-./scripts/start-security-suite.sh stop behavioral-monitor
+$SECURITY_SUITE_HOME/scripts/start-security-suite.sh stop web-dashboard
+$SECURITY_SUITE_HOME/scripts/start-security-suite.sh stop behavioral-monitor
 
 # Get help
-./scripts/start-security-suite.sh help
+$SECURITY_SUITE_HOME/scripts/start-security-suite.sh help
 
 # Manual service startup (fallback)
-cd ~/security-suite/web-dashboard && ./start-dashboard.sh start
-cd ~/security-suite/scripts && ./behavioral-monitor.sh &
+cd $HOME/security-suite/web-dashboard && ./start-dashboard.sh start
+cd $HOME/security-suite/scripts && ./behavioral-monitor.sh &
 ```
 
 ### Emergency Commands
 
 ```bash
 # Emergency restart
-./src/core/scripts/start-security-suite.sh restart all
+$SECURITY_SUITE_HOME/scripts/start-security-suite.sh restart all
 
 # Emergency status check
-./src/core/scripts/start-security-suite.sh status
+$SECURITY_SUITE_HOME/scripts/start-security-suite.sh status
 
 # Emergency log check
-tail -n 50 ~/security-suite/logs/manual/security_scan_*.log
+tail -n 50 $HOME/security-suite/logs/manual/security_scan_*.log
 
 # Emergency database check
-sqlite3 ~/security-suite/configs/behavioral_analysis/behavioral_data.db "PRAGMA integrity_check;"
+sqlite3 $HOME/security-suite/configs/behavioral_analysis/behavioral_data.db "PRAGMA integrity_check;"
 ```
 
 ### Troubleshooting Commands
@@ -870,11 +870,11 @@ ping -c 3 8.8.8.8
 
 # Check service logs
 journalctl --user -u security-daily-scan.service --no-pager
-tail -n 50 ~/security-suite/src/dashboard/dashboard.log
+tail -n 50 $HOME/security-suite/web-dashboard/dashboard.log
 
 # Check database integrity
-sqlite3 ~/security-suite/configs/behavioral_analysis/behavioral_data.db "PRAGMA integrity_check;"
-sqlite3 ~/security-suite/configs/incident_response/incidents.db "PRAGMA integrity_check;"
+sqlite3 $HOME/security-suite/configs/behavioral_analysis/behavioral_data.db "PRAGMA integrity_check;"
+sqlite3 $HOME/security-suite/configs/incident_response/incidents.db "PRAGMA integrity_check;"
 ```
 
 ---

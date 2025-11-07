@@ -255,7 +255,7 @@ show_help() {
     echo "  help        Show this help message"
     echo ""
     echo "Environment Variables:"
-    echo "  SECURITY_SUITE_HOME    Path to security suite installation (default: /opt/garuda-security-suite)"
+    echo "  SECURITY_SUITE_HOME    Path to security suite installation (default: \$HOME/security-suite)"
     echo ""
     echo "Examples:"
     echo "  $0 install              # Install service"

@@ -10,7 +10,7 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'web-dashboard'))
 
 # Set environment variable
-os.environ['SECURITY_SUITE_HOME'] = '/mnt/AirFryer/Projects/Linux/garuda-security-suite'
+os.environ['SECURITY_SUITE_HOME'] = os.environ.get('SECURITY_SUITE_HOME', os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import and initialize
 from auth import ensure_auth_db

@@ -19,7 +19,7 @@ DASHBOARD_USER="garuda-dashboard"
 DASHBOARD_SERVICE="garuda-dashboard"
 
 # Security suite home
-SECURITY_SUITE_HOME="${SECURITY_SUITE_HOME:-/opt/garuda-security-suite}"
+SECURITY_SUITE_HOME="${SECURITY_SUITE_HOME:-$HOME/security-suite}"
 
 # Function to print colored output
 print_status() {

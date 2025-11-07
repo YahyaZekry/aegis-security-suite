@@ -98,13 +98,16 @@ scan_installation() {
     local found_components=()
     local missing_components=()
     
+    # Get security suite home directory
+    SECURITY_SUITE_HOME="${SECURITY_SUITE_HOME:-$HOME/security-suite}"
+    
     # Check main directory
-    if [ -d "$HOME/security-suite" ]; then
-        found_components+=("Security suite directory (~$HOME/security-suite)")
+    if [ -d "$SECURITY_SUITE_HOME" ]; then
+        found_components+=("Security suite directory ($SECURITY_SUITE_HOME)")
         
         # Count files in subdirectories
-        local script_count=$(find "$HOME/security-suite/scripts" -type f 2>/dev/null | wc -l)
-        local log_count=$(find "$HOME/security-suite/logs" -type f 2>/dev/null | wc -l)
+        local script_count=$(find "$SECURITY_SUITE_HOME/scripts" -type f 2>/dev/null | wc -l)
+        local log_count=$(find "$SECURITY_SUITE_HOME/logs" -type f 2>/dev/null | wc -l)
         
         if [ "$script_count" -gt 0 ]; then
             found_components+=("$script_count security script files")
@@ -114,7 +117,7 @@ scan_installation() {
             found_components+=("$log_count log files")
         fi
         
-        if [ -f "$HOME/security-suite/configs/security-config.conf" ]; then
+        if [ -f "$SECURITY_SUITE_HOME/configs/security-config.conf" ]; then
             found_components+=("Configuration file")
         fi
     else
@@ -163,8 +166,8 @@ create_backup() {
         local timestamp=$(date +"%Y%m%d_%H%M%S")
         BACKUP_LOCATION="$HOME/security-suite-backup-$timestamp"
         
-        if [ -d "$HOME/security-suite" ]; then
-            if cp -r "$HOME/security-suite" "$BACKUP_LOCATION"; then
+        if [ -d "$SECURITY_SUITE_HOME" ]; then
+            if cp -r "$SECURITY_SUITE_HOME" "$BACKUP_LOCATION"; then
                 show_success "Backup created at: $BACKUP_LOCATION"
             else
                 show_error "Failed to create backup"
@@ -187,22 +190,37 @@ remove_systemd_components() {
     if [ "$REMOVE_SYSTEMD_TIMERS" = "y" ]; then
         show_progress "Removing systemd timers and services"
         
-        # Stop and disable all security timers
-        local timers=("security-daily.timer" "security-weekly.timer" "security-monthly.timer")
-        local services=("security-daily.service" "security-weekly.service" "security-monthly.service")
+        # Stop and disable all security timers (including scan timers)
+        local timers=("security-daily.timer" "security-weekly.timer" "security-monthly.timer"
+                      "security-daily-scan.timer" "security-weekly-scan.timer" "security-monthly-scan.timer"
+                      "behavioral-monitor.timer" "memory-monitor.timer" "threat-feed-update.timer"
+                      "threat-feed-daily.timer" "threat-feed-cleanup.timer")
+        local services=("security-daily.service" "security-weekly.service" "security-monthly.service"
+                       "security-daily-scan.service" "security-weekly-scan.service" "security-monthly-scan.service"
+                       "behavioral-monitor.service" "memory-monitor.service" "threat-feed-update.service"
+                       "garuda-dashboard.service" "garuda-behavioral-monitor.service")
         
         for timer in "${timers[@]}"; do
-            if systemctl --user is-enabled "$timer" &>/dev/null; then
-                systemctl --user stop "$timer" 2>/dev/null
-                systemctl --user disable "$timer" 2>/dev/null
+            if systemctl --user list-unit-files | grep -q "^$timer" 2>/dev/null; then
+                if systemctl --user is-active "$timer" &>/dev/null; then
+                    systemctl --user stop "$timer" 2>/dev/null
+                fi
+                if systemctl --user is-enabled "$timer" &>/dev/null; then
+                    systemctl --user disable "$timer" 2>/dev/null
+                fi
                 show_success "Stopped and disabled $timer"
             fi
         done
         
         for service in "${services[@]}"; do
-            if systemctl --user is-active "$service" &>/dev/null; then
-                systemctl --user stop "$service" 2>/dev/null
-                show_success "Stopped $service"
+            if systemctl --user list-unit-files | grep -q "^$service" 2>/dev/null; then
+                if systemctl --user is-active "$service" &>/dev/null; then
+                    systemctl --user stop "$service" 2>/dev/null
+                fi
+                if systemctl --user is-enabled "$service" &>/dev/null; then
+                    systemctl --user disable "$service" 2>/dev/null
+                fi
+                show_success "Stopped and disabled $service"
             fi
         done
         
@@ -212,6 +230,27 @@ remove_systemd_components() {
             rm -f "$file"
             ((removed_files++))
         done < <(find ~/.config/systemd/user -name "*security*" -print0 2>/dev/null)
+        
+        # Also remove timer and service files that might not have "security" in the name
+        while IFS= read -r -d '' file; do
+            rm -f "$file"
+            ((removed_files++))
+        done < <(find ~/.config/systemd/user -name "*behavioral*" -print0 2>/dev/null)
+        
+        while IFS= read -r -d '' file; do
+            rm -f "$file"
+            ((removed_files++))
+        done < <(find ~/.config/systemd/user -name "*memory-monitor*" -print0 2>/dev/null)
+        
+        while IFS= read -r -d '' file; do
+            rm -f "$file"
+            ((removed_files++))
+        done < <(find ~/.config/systemd/user -name "*threat*" -print0 2>/dev/null)
+        
+        while IFS= read -r -d '' file; do
+            rm -f "$file"
+            ((removed_files++))
+        done < <(find ~/.config/systemd/user -name "*garuda*" -print0 2>/dev/null)
         
         if [ "$removed_files" -gt 0 ]; then
             show_success "Removed $removed_files systemd unit files"
@@ -228,13 +267,13 @@ remove_security_suite_directory() {
     if [ "$REMOVE_SECURITY_SUITE_DIR" = "y" ]; then
         show_progress "Removing security suite directory"
         
-        if [ -d "$HOME/security-suite" ]; then
-            local dir_size=$(du -sh "$HOME/security-suite" 2>/dev/null | cut -f1)
+        if [ -d "$SECURITY_SUITE_HOME" ]; then
+            local dir_size=$(du -sh "$SECURITY_SUITE_HOME" 2>/dev/null | cut -f1)
             
-            if rm -rf "$HOME/security-suite"; then
-                show_success "Removed ~/security-suite directory ($dir_size)"
+            if rm -rf "$SECURITY_SUITE_HOME"; then
+                show_success "Removed $SECURITY_SUITE_HOME directory ($dir_size)"
             else
-                show_error "Failed to remove ~/security-suite directory"
+                show_error "Failed to remove $SECURITY_SUITE_HOME directory"
                 return 1
             fi
         else
@@ -276,6 +315,93 @@ remove_security_tools() {
             show_info "No security tools found to remove"
         fi
     fi
+}
+
+# Terminate running processes
+terminate_running_processes() {
+    show_progress "Terminating running security suite processes"
+    
+    # Get the current user's security suite directory (if it exists)
+    local security_suite_dir=""
+    if [ -n "$SECURITY_SUITE_HOME" ] && [ -d "$SECURITY_SUITE_HOME" ]; then
+        security_suite_dir="$SECURITY_SUITE_HOME"
+    elif [ -d "$HOME/security-suite" ]; then
+        security_suite_dir="$HOME/security-suite"
+    elif [ -d "/opt/garuda-security-suite" ]; then
+        security_suite_dir="/opt/garuda-security-suite"
+    fi
+    
+    # Terminate memory-monitor.sh process
+    local memory_monitor_pids=$(pgrep -f "memory-monitor.sh" 2>/dev/null)
+    if [ -n "$memory_monitor_pids" ]; then
+        for pid in $memory_monitor_pids; do
+            if kill -0 "$pid" 2>/dev/null; then
+                # Check if this is a security suite memory monitor
+                local cmd=$(ps -p "$pid" -o cmd= 2>/dev/null)
+                if [ -n "$security_suite_dir" ] && echo "$cmd" | grep -q "$security_suite_dir" 2>/dev/null; then
+                    kill -TERM "$pid" 2>/dev/null
+                    show_success "Terminated memory-monitor.sh process (PID: $pid)"
+                    
+                    # Wait a moment and check if it's still running
+                    sleep 2
+                    if kill -0 "$pid" 2>/dev/null; then
+                        kill -KILL "$pid" 2>/dev/null
+                        show_success "Force killed memory-monitor.sh process (PID: $pid)"
+                    fi
+                elif [ -z "$security_suite_dir" ]; then
+                    # If we can't determine the security suite directory, terminate all memory-monitor.sh processes
+                    kill -TERM "$pid" 2>/dev/null
+                    show_success "Terminated memory-monitor.sh process (PID: $pid)"
+                    
+                    # Wait a moment and check if it's still running
+                    sleep 2
+                    if kill -0 "$pid" 2>/dev/null; then
+                        kill -KILL "$pid" 2>/dev/null
+                        show_success "Force killed memory-monitor.sh process (PID: $pid)"
+                    fi
+                fi
+            fi
+        done
+    else
+        show_info "No memory-monitor.sh processes found running"
+    fi
+    
+    # Terminate other security suite processes
+    local security_processes=("behavioral-monitor" "threat-intelligence" "garuda-dashboard" "python.*dashboard")
+    
+    for process_pattern in "${security_processes[@]}"; do
+        local pids=$(pgrep -f "$process_pattern" 2>/dev/null)
+        if [ -n "$pids" ]; then
+            for pid in $pids; do
+                if kill -0 "$pid" 2>/dev/null; then
+                    # Check if the process is related to the security suite
+                    local cmd=$(ps -p "$pid" -o cmd= 2>/dev/null)
+                    if [ -n "$security_suite_dir" ] && echo "$cmd" | grep -q "$security_suite_dir" 2>/dev/null; then
+                        kill -TERM "$pid" 2>/dev/null
+                        show_success "Terminated security process (PID: $pid): $process_pattern"
+                        
+                        # Wait a moment and check if it's still running
+                        sleep 2
+                        if kill -0 "$pid" 2>/dev/null; then
+                            kill -KILL "$pid" 2>/dev/null
+                            show_success "Force killed security process (PID: $pid): $process_pattern"
+                        fi
+                    elif [ -z "$security_suite_dir" ] && echo "$cmd" | grep -q -E "(security-suite|garuda|behavioral|threat)" 2>/dev/null; then
+                        # If we can't determine the security suite directory, use pattern matching
+                        kill -TERM "$pid" 2>/dev/null
+                        show_success "Terminated security process (PID: $pid): $process_pattern"
+                        
+                        # Wait a moment and check if it's still running
+                        sleep 2
+                        if kill -0 "$pid" 2>/dev/null; then
+                            kill -KILL "$pid" 2>/dev/null
+                            show_success "Force killed security process (PID: $pid): $process_pattern"
+                        fi
+                    fi
+                fi
+            done
+        fi
+    done
 }
 
 # Main uninstall process
@@ -325,6 +451,7 @@ main_uninstall_process() {
     # Execute removal steps
     [ "$CREATE_BACKUP" = "y" ] && create_backup
     [ "$REMOVE_SYSTEMD_TIMERS" = "y" ] && remove_systemd_components
+    terminate_running_processes
     [ "$REMOVE_SECURITY_SUITE_DIR" = "y" ] && remove_security_suite_directory
     [ "$REMOVE_SECURITY_TOOLS" = "y" ] && remove_security_tools
 }
@@ -338,18 +465,51 @@ verify_removal() {
     local remaining_items=()
     
     # Check for remaining components
-    if [ -d "$HOME/security-suite" ]; then
+    SECURITY_SUITE_HOME="${SECURITY_SUITE_HOME:-$HOME/security-suite}"
+    if [ -d "$SECURITY_SUITE_HOME" ]; then
         remaining_items+=("Security suite directory still exists")
     fi
     
-    local remaining_timers=$(systemctl --user list-timers | grep -c security 2>/dev/null || echo "0")
+    # Check for specific security scan timers mentioned in the test report
+    local scan_timers=("security-daily-scan.timer" "security-weekly-scan.timer" "security-monthly-scan.timer")
+    for timer in "${scan_timers[@]}"; do
+        if systemctl --user list-timers | grep -q "$timer" 2>/dev/null; then
+            remaining_items+=("$timer still active")
+        fi
+    done
+    
+    # Check for any remaining security-related timers
+    local remaining_timers=$(systemctl --user list-timers | grep -E "(security|behavioral|threat|garuda)" 2>/dev/null | wc -l)
     if [ "$remaining_timers" -gt 0 ]; then
-        remaining_items+=("$remaining_timers systemd timers still active")
+        remaining_items+=("$remaining_timers security-related timers still active")
     fi
     
-    local remaining_units=$(find ~/.config/systemd/user -name "*security*" 2>/dev/null | wc -l)
-    if [ "$remaining_units" -gt 0 ]; then
-        remaining_items+=("$remaining_units systemd unit files remaining")
+    # Check for memory-monitor.sh process
+    local memory_monitor_pids=$(pgrep -f "memory-monitor.sh" 2>/dev/null)
+    if [ -n "$memory_monitor_pids" ]; then
+        remaining_items+=("memory-monitor.sh process still running")
+    fi
+    
+    # Check for other security suite processes
+    local security_processes=$(pgrep -f "(behavioral-monitor|threat-intelligence|garuda-dashboard)" 2>/dev/null)
+    if [ -n "$security_processes" ]; then
+        remaining_items+=("Security suite processes still running")
+    fi
+    
+    # Check for remaining systemd unit files
+    local remaining_security_units=$(find ~/.config/systemd/user -name "*security*" 2>/dev/null | wc -l)
+    if [ "$remaining_security_units" -gt 0 ]; then
+        remaining_items+=("$remaining_security_units security systemd unit files remaining")
+    fi
+    
+    local remaining_behavioral_units=$(find ~/.config/systemd/user -name "*behavioral*" 2>/dev/null | wc -l)
+    if [ "$remaining_behavioral_units" -gt 0 ]; then
+        remaining_items+=("$remaining_behavioral_units behavioral systemd unit files remaining")
+    fi
+    
+    local remaining_garuda_units=$(find ~/.config/systemd/user -name "*garuda*" 2>/dev/null | wc -l)
+    if [ "$remaining_garuda_units" -gt 0 ]; then
+        remaining_items+=("$remaining_garuda_units garuda systemd unit files remaining")
     fi
     
     # Report results

@@ -6,7 +6,8 @@ Provides API key creation, management, and authentication endpoints
 
 import os
 import json
-from datetime import datetime
+import sqlite3
+from datetime import datetime, timedelta
 from flask import Blueprint, jsonify, request, g
 
 # Import security utilities
@@ -26,7 +27,9 @@ api_keys_bp = Blueprint('api_keys', __name__, url_prefix='/api/keys')
 def list_api_keys():
     """List all API keys"""
     try:
-        conn = api_key_manager.ensure_db()
+        # Ensure database exists and get connection
+        api_key_manager.ensure_db()
+        conn = sqlite3.connect(api_key_manager.db_path)
         cursor = conn.cursor()
         
         cursor.execute("""
@@ -39,7 +42,7 @@ def list_api_keys():
         for row in cursor.fetchall():
             keys.append({
                 'key_name': row[0],
-                'permissions': json.loads(row[1]),
+                'permissions': json.loads(row[1]) if row[1] else [],
                 'is_active': bool(row[2]),
                 'created_at': row[3],
                 'last_used': row[4],
@@ -77,12 +80,27 @@ def create_api_key():
         # Get sanitized input
         key_name = InputValidator.sanitize_string(g.sanitized_data.get('key_name', ''), 100)
         permissions = g.sanitized_data.get('permissions', [])
+        expires_in_days = g.sanitized_data.get('expires_in_days', 90)  # Default 90 days
         
         # Validate key name
         if not key_name or len(key_name) < 3:
             return jsonify({
                 'success': False,
                 'error': 'Key name must be at least 3 characters long'
+            }), 400
+        
+        # Validate expiration
+        try:
+            expires_in_days = int(expires_in_days)
+            if expires_in_days < 1 or expires_in_days > 365:
+                return jsonify({
+                    'success': False,
+                    'error': 'Expiration must be between 1 and 365 days'
+                }), 400
+        except ValueError:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid expiration value'
             }), 400
         
         # Validate permissions
@@ -110,11 +128,12 @@ def create_api_key():
                 'error': 'At least one valid permission is required'
             }), 400
         
-        # Create API key
+        # Create API key with expiration
         result = api_key_manager.generate_api_key(
             key_name,
             valid_permissions_list,
-            g.current_user.get('username')
+            g.current_user.get('username'),
+            expires_in_days=expires_in_days
         )
         
         if result['success']:
@@ -123,7 +142,8 @@ def create_api_key():
                 'username': g.current_user.get('username'),
                 'ip_address': request.remote_addr,
                 'key_name': key_name,
-                'permissions': valid_permissions_list
+                'permissions': valid_permissions_list,
+                'expires_in_days': expires_in_days
             })
             
             return jsonify(result), 201
@@ -186,6 +206,73 @@ def revoke_api_key(key_name):
         }, 'ERROR')
         return jsonify({'success': False, 'error': 'Internal server error'}), 500
 
+@api_keys_bp.route('/<key_name>/rotate', methods=['POST'])
+@require_auth
+@require_role('admin')  # Only admins can rotate API keys
+@rate_limit(limit=5, window=300)  # 5 API key rotations per 5 minutes
+def rotate_api_key(key_name):
+    """Rotate API key (generate new key, invalidate old one)"""
+    try:
+        # Validate key name
+        key_name = InputValidator.sanitize_string(key_name, 100)
+        
+        if not key_name:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid key name'
+            }), 400
+        
+        result = api_key_manager.rotate_api_key(key_name, g.current_user.get('username'))
+        
+        if result['success']:
+            SecurityLogger.log_security_event('api_key_rotated', {
+                'user_id': g.current_user.get('user_id'),
+                'username': g.current_user.get('username'),
+                'ip_address': request.remote_addr,
+                'key_name': key_name
+            })
+            
+            return jsonify(result)
+        else:
+            SecurityLogger.log_security_event('api_key_rotation_failed', {
+                'user_id': g.current_user.get('user_id'),
+                'key_name': key_name,
+                'error': result.get('error', 'Unknown error')
+            }, 'WARNING')
+            return jsonify(result), 400
+            
+    except Exception as e:
+        SecurityLogger.log_security_event('api_key_rotation_error', {
+            'user_id': g.current_user.get('user_id'),
+            'key_name': key_name,
+            'error': str(e)
+        }, 'ERROR')
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+
+@api_keys_bp.route('/expired', methods=['GET'])
+@require_auth
+@require_role('admin')  # Only admins can view expired keys
+@rate_limit(limit=5, window=60)  # 5 requests per minute
+def get_expired_keys():
+    """Get expired API keys"""
+    try:
+        result = api_key_manager.get_expired_keys()
+        
+        SecurityLogger.log_security_event('expired_keys_accessed', {
+            'user_id': g.current_user.get('user_id'),
+            'username': g.current_user.get('username'),
+            'ip_address': request.remote_addr
+        })
+        
+        return jsonify(result)
+            
+    except Exception as e:
+        SecurityLogger.log_security_event('expired_keys_error', {
+            'user_id': g.current_user.get('user_id'),
+            'error': str(e)
+        }, 'ERROR')
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+
 @api_keys_bp.route('/usage')
 @require_auth
 @require_role('admin')  # Only admins can view API key usage
@@ -193,7 +280,9 @@ def revoke_api_key(key_name):
 def get_api_key_usage():
     """Get API key usage statistics"""
     try:
-        conn = api_key_manager.ensure_db()
+        # Ensure database exists and get connection
+        api_key_manager.ensure_db()
+        conn = sqlite3.connect(api_key_manager.db_path)
         cursor = conn.cursor()
         
         # Get recent API key usage
@@ -221,7 +310,7 @@ def get_api_key_usage():
         SELECT ak.key_name, COUNT(*) as usage_count, MAX(aku.timestamp) as last_used
         FROM api_keys ak
         LEFT JOIN api_key_usage aku ON ak.id = aku.api_key_id
-        WHERE aku.timestamp > datetime('now', '-7 days')
+        WHERE aku.timestamp > datetime('now', '-7 days') OR aku.timestamp IS NULL
         GROUP BY ak.key_name
         ORDER BY usage_count DESC
         """)

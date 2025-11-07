@@ -13,6 +13,7 @@ import time
 import json
 import sqlite3
 import logging
+import bcrypt
 from datetime import datetime, timedelta
 from functools import wraps
 from flask import request, jsonify, g, current_app
@@ -25,7 +26,8 @@ security_logger.setLevel(logging.INFO)
 
 # Create file handler for security logs
 if not security_logger.handlers:
-    log_dir = os.environ.get('SECURITY_SUITE_HOME', '/opt/garuda-security-suite')
+    # Use current working directory since we're running from project source
+    log_dir = os.path.join(os.getcwd(), 'logs')
     log_dir = os.path.join(log_dir, 'logs')
     os.makedirs(log_dir, exist_ok=True)
     
@@ -225,9 +227,11 @@ class APIKeyManager:
             permissions TEXT NOT NULL,
             is_active BOOLEAN DEFAULT 1,
             created_at TEXT NOT NULL,
+            expires_at TEXT,
             last_used TEXT,
             usage_count INTEGER DEFAULT 0,
-            created_by TEXT
+            created_by TEXT,
+            rotation_required BOOLEAN DEFAULT 0
         )
         """)
         
@@ -243,21 +247,33 @@ class APIKeyManager:
         )
         """)
         
+        # Add new columns if they don't exist (for backward compatibility)
+        try:
+            cursor.execute("ALTER TABLE api_keys ADD COLUMN expires_at TEXT")
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+        
+        try:
+            cursor.execute("ALTER TABLE api_keys ADD COLUMN rotation_required BOOLEAN DEFAULT 0")
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+        
         conn.commit()
         conn.close()
     
-    def generate_api_key(self, key_name: str, permissions: List[str], created_by: str) -> Dict:
-        """Generate new API key"""
+    def generate_api_key(self, key_name: str, permissions: List[str], created_by: str, expires_in_days: int = 90) -> Dict:
+        """Generate new API key with expiration"""
         api_key = f"garuda_{secrets.token_urlsafe(32)}"
+        expires_at = (datetime.now() + timedelta(days=expires_in_days)).isoformat()
         
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
         try:
             cursor.execute("""
-            INSERT INTO api_keys (key_name, api_key, permissions, created_at, created_by)
-            VALUES (?, ?, ?, ?, ?)
-            """, (key_name, api_key, json.dumps(permissions), datetime.now().isoformat(), created_by))
+            INSERT INTO api_keys (key_name, api_key, permissions, created_at, expires_at, created_by)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """, (key_name, api_key, json.dumps(permissions), datetime.now().isoformat(), expires_at, created_by))
             
             conn.commit()
             
@@ -265,7 +281,8 @@ class APIKeyManager:
                 'success': True,
                 'api_key': api_key,
                 'key_name': key_name,
-                'permissions': permissions
+                'permissions': permissions,
+                'expires_at': expires_at
             }
         except sqlite3.IntegrityError:
             return {'success': False, 'error': 'Key name already exists'}
@@ -281,8 +298,8 @@ class APIKeyManager:
         cursor = conn.cursor()
         
         cursor.execute("""
-        SELECT id, key_name, permissions, is_active, usage_count 
-        FROM api_keys 
+        SELECT id, key_name, permissions, is_active, usage_count, expires_at, rotation_required
+        FROM api_keys
         WHERE api_key = ? AND is_active = 1
         """, (api_key,))
         
@@ -292,8 +309,32 @@ class APIKeyManager:
             conn.close()
             return None
         
-        key_id, key_name, permissions_json, is_active, usage_count = result
+        key_id, key_name, permissions_json, is_active, usage_count, expires_at, rotation_required = result
         permissions = json.loads(permissions_json)
+        
+        # Check expiration
+        if expires_at:
+            expiration_time = datetime.fromisoformat(expires_at)
+            if datetime.now() > expiration_time:
+                # Deactivate expired key
+                cursor.execute("UPDATE api_keys SET is_active = 0 WHERE id = ?", (key_id,))
+                conn.commit()
+                conn.close()
+                SecurityLogger.log_security_event('api_key_expired', {
+                    'key_id': key_id,
+                    'key_name': key_name,
+                    'expired_at': expires_at
+                }, 'WARNING')
+                return None
+        
+        # Check if rotation is required
+        if rotation_required:
+            conn.close()
+            SecurityLogger.log_security_event('api_key_rotation_required', {
+                'key_id': key_id,
+                'key_name': key_name
+            }, 'WARNING')
+            return None
         
         # Check specific permission if required
         if required_permission and required_permission not in permissions:
@@ -302,7 +343,7 @@ class APIKeyManager:
         
         # Update usage
         cursor.execute("""
-        UPDATE api_keys SET last_used = ?, usage_count = usage_count + 1 
+        UPDATE api_keys SET last_used = ?, usage_count = usage_count + 1
         WHERE id = ?
         """, (datetime.now().isoformat(), key_id))
         
@@ -310,7 +351,7 @@ class APIKeyManager:
         cursor.execute("""
         INSERT INTO api_key_usage (api_key_id, ip_address, endpoint, user_agent, timestamp)
         VALUES (?, ?, ?, ?, ?)
-        """, (key_id, request.remote_addr if request else None, 
+        """, (key_id, request.remote_addr if request else None,
                request.endpoint if request else None,
                request.headers.get('User-Agent') if request else None,
                datetime.now().isoformat()))
@@ -337,6 +378,148 @@ class APIKeyManager:
         
         if affected_rows > 0:
             return {'success': True, 'message': 'API key revoked'}
+        else:
+            return {'success': False, 'error': 'API key not found'}
+    
+    def rotate_api_key(self, key_name: str, rotated_by: str) -> Dict:
+        """Rotate API key (generate new key, invalidate old one)"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        # Get existing key info
+        cursor.execute("""
+        SELECT id, permissions, expires_at, created_by
+        FROM api_keys
+        WHERE key_name = ? AND is_active = 1
+        """, (key_name,))
+        
+        result = cursor.fetchone()
+        
+        if not result:
+            conn.close()
+            return {'success': False, 'error': 'API key not found'}
+        
+        key_id, permissions_json, expires_at, created_by = result
+        permissions = json.loads(permissions_json)
+        
+        # Generate new API key
+        new_api_key = f"garuda_{secrets.token_urlsafe(32)}"
+        
+        # Calculate new expiration (extend from current expiration)
+        if expires_at:
+            current_expiration = datetime.fromisoformat(expires_at)
+            if datetime.now() > current_expiration:
+                # If already expired, set new expiration from now
+                new_expires_at = (datetime.now() + timedelta(days=90)).isoformat()
+            else:
+                # Extend current expiration by 90 days
+                new_expires_at = (current_expiration + timedelta(days=90)).isoformat()
+        else:
+            new_expires_at = (datetime.now() + timedelta(days=90)).isoformat()
+        
+        try:
+            # Update existing key to inactive
+            cursor.execute("""
+            UPDATE api_keys
+            SET is_active = 0, rotation_required = 0
+            WHERE id = ?
+            """, (key_id,))
+            
+            # Create new key entry
+            cursor.execute("""
+            INSERT INTO api_keys (key_name, api_key, permissions, created_at, expires_at, created_by)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """, (key_name, new_api_key, json.dumps(permissions),
+                   datetime.now().isoformat(), new_expires_at, rotated_by))
+            
+            conn.commit()
+            
+            return {
+                'success': True,
+                'api_key': new_api_key,
+                'key_name': key_name,
+                'permissions': permissions,
+                'expires_at': new_expires_at,
+                'message': 'API key rotated successfully'
+            }
+        except Exception as e:
+            conn.rollback()
+            return {'success': False, 'error': str(e)}
+        finally:
+            conn.close()
+    
+    def get_expired_keys(self) -> Dict:
+        """Get expired API keys"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+        SELECT key_name, created_at, expires_at, usage_count, created_by
+        FROM api_keys
+        WHERE expires_at < ? AND is_active = 1
+        ORDER BY expires_at DESC
+        """, (datetime.now().isoformat(),))
+        
+        expired_keys = []
+        for row in cursor.fetchall():
+            expired_keys.append({
+                'key_name': row[0],
+                'created_at': row[1],
+                'expires_at': row[2],
+                'usage_count': row[3],
+                'created_by': row[4]
+            })
+        
+        conn.close()
+        
+        return {
+            'success': True,
+            'expired_keys': expired_keys,
+            'total': len(expired_keys)
+        }
+    
+    def cleanup_expired_keys(self) -> Dict:
+        """Deactivate expired API keys"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+        UPDATE api_keys
+        SET is_active = 0
+        WHERE expires_at < ? AND is_active = 1
+        """, (datetime.now().isoformat(),))
+        
+        deactivated_count = cursor.rowcount
+        conn.commit()
+        conn.close()
+        
+        if deactivated_count > 0:
+            SecurityLogger.log_security_event('expired_keys_cleaned_up', {
+                'deactivated_count': deactivated_count
+            }, 'INFO')
+        
+        return {
+            'success': True,
+            'deactivated_count': deactivated_count
+        }
+    
+    def require_rotation(self, key_name: str) -> Dict:
+        """Mark API key as requiring rotation"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+        UPDATE api_keys
+        SET rotation_required = 1
+        WHERE key_name = ? AND is_active = 1
+        """, (key_name,))
+        
+        affected_rows = cursor.rowcount
+        conn.commit()
+        conn.close()
+        
+        if affected_rows > 0:
+            return {'success': True, 'message': 'API key marked for rotation'}
         else:
             return {'success': False, 'error': 'API key not found'}
 
@@ -381,8 +564,8 @@ class SecurityLogger:
         
         # Log to database if available
         try:
-            auth_db_path = os.path.join(os.environ.get('SECURITY_SUITE_HOME', '/opt/garuda-security-suite'),
-                                      'configs', 'web-dashboard', 'auth.db')
+            # Use current working directory since we're running from project source
+            auth_db_path = os.path.join(os.getcwd(), 'configs', 'web-dashboard', 'auth.db')
             
             if os.path.exists(auth_db_path):
                 conn = sqlite3.connect(auth_db_path)
@@ -407,10 +590,9 @@ class SecurityLogger:
             security_logger.error(f"Failed to log to database: {e}")
 
 # Initialize rate limiter and API key manager
-RATE_LIMIT_DB = os.path.join(os.environ.get('SECURITY_SUITE_HOME', '/opt/garuda-security-suite'),
-                             'configs', 'web-dashboard', 'rate_limits.db')
-API_KEY_DB = os.path.join(os.environ.get('SECURITY_SUITE_HOME', '/opt/garuda-security-suite'),
-                          'configs', 'web-dashboard', 'api_keys.db')
+# Use current working directory since we're running from project source
+RATE_LIMIT_DB = os.path.join(os.getcwd(), 'configs', 'web-dashboard', 'rate_limits.db')
+API_KEY_DB = os.path.join(os.getcwd(), 'configs', 'web-dashboard', 'api_keys.db')
 
 rate_limiter = RateLimiter(RATE_LIMIT_DB)
 api_key_manager = APIKeyManager(API_KEY_DB)
@@ -545,3 +727,179 @@ def secure_headers(f):
         
         return response
     return decorated_function
+
+def get_ip_geolocation(ip_address):
+    """Get geolocation data for IP address (simplified implementation)"""
+    try:
+        import ipaddress
+        import requests
+        
+        # Skip private IPs
+        ip_obj = ipaddress.ip_address(ip_address)
+        if ip_obj.is_private:
+            return None
+        
+        # Use a free geolocation API (in production, consider using a paid service)
+        try:
+            response = requests.get(f"http://ip-api.com/json/{ip_address}", timeout=2)
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('status') == 'success':
+                    return {
+                        'country': data.get('country'),
+                        'region': data.get('regionName'),
+                        'city': data.get('city'),
+                        'latitude': data.get('lat'),
+                        'longitude': data.get('lon'),
+                        'isp': data.get('isp')
+                    }
+        except:
+            pass
+        
+        return None
+    except:
+        return None
+
+def generate_csrf_token():
+    """Generate CSRF token for form protection"""
+    return secrets.token_urlsafe(32)
+
+def validate_csrf_token(token):
+    """Validate CSRF token"""
+    # In a real implementation, this would check against session-stored tokens
+    # For now, we'll just validate the format
+    if not token or len(token) < 20:
+        return False
+    return True
+
+def check_password_strength(password):
+    """Check password strength against security policies"""
+    if not password:
+        return {'strength': 0, 'issues': ['Password is required']}
+    
+    issues = []
+    score = 0
+    
+    # Length check
+    if len(password) < 8:
+        issues.append('Password must be at least 8 characters long')
+    else:
+        score += 1
+    
+    if len(password) >= 12:
+        score += 1
+    
+    # Complexity checks
+    if not any(c.islower() for c in password):
+        issues.append('Password must contain lowercase letters')
+    else:
+        score += 1
+    
+    if not any(c.isupper() for c in password):
+        issues.append('Password must contain uppercase letters')
+    else:
+        score += 1
+    
+    if not any(c.isdigit() for c in password):
+        issues.append('Password must contain numbers')
+    else:
+        score += 1
+    
+    if not any(c in '!@#$%^&*()_+-=[]{}|;:,.<>?' for c in password):
+        issues.append('Password must contain special characters')
+    else:
+        score += 1
+    
+    # Common password check
+    common_passwords = ['password', '123456', 'admin', 'qwerty', 'letmein']
+    if password.lower() in common_passwords:
+        issues.append('Password is too common')
+        score = max(0, score - 2)
+    
+    # Determine strength
+    if score >= 6:
+        strength = 'very_strong'
+    elif score >= 5:
+        strength = 'strong'
+    elif score >= 4:
+        strength = 'medium'
+    elif score >= 2:
+        strength = 'weak'
+    else:
+        strength = 'very_weak'
+    
+    return {
+        'strength': strength,
+        'score': score,
+        'issues': issues
+    }
+
+def generate_mfa_secret():
+    """Generate secret for multi-factor authentication"""
+    import pyotp
+    return pyotp.random_base32()
+
+def verify_mfa_token(secret, token):
+    """Verify multi-factor authentication token"""
+    try:
+        import pyotp
+        totp = pyotp.TOTP(secret)
+        return totp.verify(token, valid_window=1)  # Allow 1 step tolerance
+    except:
+        return False
+
+def generate_mfa_qr_code(secret, username):
+    """Generate QR code for MFA setup"""
+    try:
+        import pyotp
+        import qrcode
+        from io import BytesIO
+        import base64
+        
+        totp_uri = pyotp.totp.TOTP(secret).provisioning_uri(
+            name=username,
+            issuer_name="Garuda Security Suite"
+        )
+        
+        qr = qrcode.QRCode(version=1, box_size=10, border=5)
+        qr.add_data(totp_uri)
+        qr.make(fit=True)
+        
+        img = qr.make_image(fill_color="black", back_color="white")
+        buffer = BytesIO()
+        img.save(buffer, format='PNG')
+        img_str = base64.b64encode(buffer.getvalue()).decode()
+        
+        return f"data:image/png;base64,{img_str}"
+    except:
+        return None
+
+def hash_password(password, salt=None):
+    """Hash password with salt using bcrypt"""
+    if salt is None:
+        salt = bcrypt.gensalt().decode('utf-8')
+    
+    # Convert salt to bytes if it's a string
+    if isinstance(salt, str):
+        salt = salt.encode('utf-8')
+    
+    # Hash password
+    password_hash = bcrypt.hashpw(password.encode('utf-8'), salt)
+    
+    # Return as string
+    return password_hash.decode('utf-8')
+
+def verify_password(password, stored_hash, salt):
+    """Verify password against stored hash"""
+    try:
+        # Convert salt to bytes if it's a string
+        if isinstance(salt, str):
+            salt = salt.encode('utf-8')
+        
+        # Hash the provided password with the same salt
+        password_hash = bcrypt.hashpw(password.encode('utf-8'), salt)
+        
+        # Compare with stored hash
+        return password_hash.decode('utf-8') == stored_hash
+    except:
+        return False

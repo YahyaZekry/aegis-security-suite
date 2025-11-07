@@ -132,7 +132,7 @@ def test_database_integration():
     
     try:
         # Test behavioral analysis database
-        behavioral_db = "/opt/garuda-security-suite/configs/behavioral_analysis/behavioral_analysis.db"
+        behavioral_db = os.path.join(os.environ.get('SECURITY_SUITE_HOME', '/opt/garuda-security-suite'), 'configs', 'behavioral_analysis', 'behavioral_analysis.db')
         if os.path.exists(behavioral_db):
             conn = sqlite3.connect(behavioral_db)
             cursor = conn.cursor()
@@ -145,7 +145,7 @@ def test_database_integration():
             print_test_result("Behavioral Database", False, "Database not found")
         
         # Test incident database
-        incident_db = "/opt/garuda-security-suite/configs/incident_response/incidents.db"
+        incident_db = os.path.join(os.environ.get('SECURITY_SUITE_HOME', '/opt/garuda-security-suite'), 'configs', 'incident_response', 'incidents.db')
         if os.path.exists(incident_db):
             conn = sqlite3.connect(incident_db)
             cursor = conn.cursor()
@@ -158,7 +158,7 @@ def test_database_integration():
             print_test_result("Incident Database", False, "Database not found")
         
         # Test threat intelligence database
-        threat_db = "/opt/garuda-security-suite/configs/threat_intelligence/ioc_database.db"
+        threat_db = os.path.join(os.environ.get('SECURITY_SUITE_HOME', '/opt/garuda-security-suite'), 'configs', 'threat_intelligence', 'ioc_database.db')
         if os.path.exists(threat_db):
             conn = sqlite3.connect(threat_db)
             cursor = conn.cursor()

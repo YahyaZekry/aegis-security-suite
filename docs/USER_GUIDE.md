@@ -96,9 +96,9 @@ The Garuda Security Suite is designed specifically for Garuda Linux and requires
 
 3. Set up the security suite directory:
    ```bash
-   sudo mkdir -p /opt/garuda-security-suite
-   sudo cp -r * /opt/garuda-security-suite/
-   sudo chown -R $USER:$USER /opt/garuda-security-suite
+   sudo mkdir -p $HOME/security-suite
+   sudo cp -r * $HOME/security-suite/
+   sudo chown -R $USER:$USER $HOME/security-suite
    ```
 
 ### Initial Configuration
@@ -119,19 +119,19 @@ After installation, perform these initial configuration steps:
 
 3. **Create Directories**:
    ```bash
-   mkdir -p ~/garuda-security-suite/{logs,reports,quarantine,evidence}
+   mkdir -p $HOME/security-suite/{logs,reports,quarantine,evidence}
    ```
 
 ### First-time Setup
 
 1. **Run Initial Security Scan**:
    ```bash
-   ./src/core/scripts/security-daily-scan.sh
+   ./scripts/security-daily-scan.sh
    ```
 
 2. **Start the Web Dashboard**:
    ```bash
-   cd src/dashboard
+   cd web-dashboard
    ./start-dashboard.sh
    ```
 
@@ -160,7 +160,7 @@ The Garuda Security Suite provides a comprehensive web-based dashboard for monit
 
 2. **Manual Start**:
    ```bash
-   cd /opt/garuda-security-suite/src/dashboard
+   cd $SECURITY_SUITE_HOME/web-dashboard
    ./start-dashboard.sh
    ```
 
@@ -253,7 +253,7 @@ A quick scan focuses on common threat locations and is ideal for regular checks:
 
 2. **Via Command Line**:
    ```bash
-   ./src/core/scripts/security-daily-scan.sh --quick
+   ./scripts/security-daily-scan.sh --quick
    ```
 
 #### Full System Scan
@@ -267,7 +267,7 @@ Comprehensive scan of the entire system:
 
 2. **Via Command Line**:
    ```bash
-   ./src/core/scripts/security-daily-scan.sh --full
+   ./scripts/security-daily-scan.sh --full
    ```
 
 #### Custom Scan
@@ -276,7 +276,7 @@ Scan specific directories or file types:
 
 1. **Via Command Line**:
    ```bash
-   ./src/core/scripts/security-daily-scan.sh --directory /path/to/scan
+   ./scripts/security-daily-scan.sh --directory /path/to/scan
    ```
 
 2. **Scan Configuration**:
@@ -408,10 +408,10 @@ Understanding scan results is crucial for effective security management.
 2. **Via Command Line**:
    ```bash
    # View latest scan report
-   cat ~/garuda-security-suite/reports/latest_scan_report.txt
+   cat $HOME/security-suite/reports/latest_scan_report.txt
    
    # List all scan reports
-   ls -la ~/garuda-security-suite/reports/
+   ls -la $HOME/security-suite/reports/
    ```
 
 ### Managing Quarantine
@@ -427,7 +427,7 @@ Quarantine isolates detected threats to prevent system damage.
 
 2. **View Quarantined Items**:
    ```bash
-   ls -la ~/garuda-security-suite/quarantine/
+   ls -la $HOME/security-suite/quarantine/
    ```
 
 3. **Restore from Quarantine**:
@@ -457,7 +457,7 @@ Configure quarantine behavior in `configs/security-config.conf`:
 AUTO_QUARANTINE=true
 
 # Quarantine directory
-QUARANTINE_DIR="$HOME/garuda-security-suite/quarantine"
+QUARANTINE_DIR="$HOME/security-suite/quarantine"
 
 # Maximum quarantine size (MB)
 MAX_QUARANTINE_SIZE=1024
@@ -493,7 +493,7 @@ A behavioral baseline is a profile of normal system activity including:
 
 2. **Via Command Line**:
    ```bash
-   ./src/core/scripts/behavioral-analysis.sh --create-baseline --days 7
+   ./scripts/behavioral-analysis.sh --create-baseline --days 7
    ```
 
 #### Baseline Configuration
@@ -518,17 +518,17 @@ BEHAVIORAL_THREAT_SCORE_THRESHOLD=70
 
 1. **View Baseline Status**:
    ```bash
-   ./src/core/scripts/behavioral-analysis.sh --baseline-status
+   ./scripts/behavioral-analysis.sh --baseline-status
    ```
 
 2. **Update Baseline**:
    ```bash
-   ./src/core/scripts/behavioral-analysis.sh --update-baseline
+   ./scripts/behavioral-analysis.sh --update-baseline
    ```
 
 3. **Reset Baseline**:
    ```bash
-   ./src/core/scripts/behavioral-analysis.sh --reset-baseline
+   ./scripts/behavioral-analysis.sh --reset-baseline
    ```
 
 ### Monitoring System Behavior in Real-time
@@ -544,7 +544,7 @@ Real-time monitoring continuously analyzes system behavior against the establish
 
 2. **Via Command Line**:
    ```bash
-   ./src/core/scripts/behavioral-analysis.sh --start-monitoring
+   ./scripts/behavioral-analysis.sh --start-monitoring
    ```
 
 #### Monitoring Metrics
@@ -738,7 +738,7 @@ The Garuda Security Suite categorizes incidents into several types:
 
    - Via Command Line:
      ```bash
-     ./src/core/scripts/incident-response.sh --create --type "malware_detected" --severity "high" --details "Suspicious file detected"
+     ./scripts/incident-response.sh --create --type "malware_detected" --severity "high" --details "Suspicious file detected"
      ```
 
 #### Incident Information
@@ -802,28 +802,28 @@ Proper evidence collection is crucial for incident investigation and potential l
 1. **Immediate Preservation**:
    ```bash
    # Create evidence directory
-   mkdir -p ~/garuda-security-suite/evidence/INC_$(date +%Y%m%d_%H%M%S)_$(uuidgen | cut -c1-8)
+   mkdir -p $HOME/security-suite/evidence/INC_$(date +%Y%m%d_%H%M%S)_$(uuidgen | cut -c1-8)
    
    # Collect system state
-   ./src/core/scripts/incident-response.sh --collect-evidence --type system_state
+   ./scripts/incident-response.sh --collect-evidence --type system_state
    ```
 
 2. **Detailed Collection**:
    ```bash
    # Collect network information
-   ./src/core/scripts/incident-response.sh --collect-evidence --type network_connections
+   ./scripts/incident-response.sh --collect-evidence --type network_connections
    
    # Collect process information
-   ./src/core/scripts/incident-response.sh --collect-evidence --type running_processes
+   ./scripts/incident-response.sh --collect-evidence --type running_processes
    
    # Collect memory dumps
-   ./src/core/scripts/incident-response.sh --collect-evidence --type memory_dump
+   ./scripts/incident-response.sh --collect-evidence --type memory_dump
    ```
 
 3. **Evidence Documentation**:
    ```bash
    # Generate evidence report
-   ./src/core/scripts/incident-response.sh --generate-report --incident-id INC_20251031_092536_9312
+   ./scripts/incident-response.sh --generate-report --incident-id INC_20251031_092536_9312
    ```
 
 #### Evidence Chain of Custody
@@ -883,7 +883,7 @@ Automated response actions provide immediate containment and mitigation for secu
 2. **Via Configuration File**:
    ```bash
    # Edit incident response configuration
-   nano configs/incident-response.conf
+   nano configs/incident_response/incident-response.conf
    
    # Example configuration
    AUTO_RESPONSE_ENABLED=true
@@ -897,25 +897,25 @@ Automated response actions provide immediate containment and mitigation for secu
 1. **Malware Detection Response**:
    ```bash
    # Automatic quarantine
-   ./src/core/scripts/incident-response.sh --quarantine --file /path/to/malicious/file
+   ./scripts/incident-response.sh --quarantine --file /path/to/malicious/file
    
    # Process termination
-   ./src/core/scripts/incident-response.sh --terminate-process --pid 12345
+   ./scripts/incident-response.sh --terminate-process --pid 12345
    
    # Network isolation
-   ./src/core/scripts/incident-response.sh --isolate-system --hostname affected-host
+   ./scripts/incident-response.sh --isolate-system --hostname affected-host
    ```
 
 2. **Unauthorized Access Response**:
    ```bash
    # Account suspension
-   ./src/core/scripts/incident-response.sh --suspend-user --username suspicious_user
+   ./scripts/incident-response.sh --suspend-user --username suspicious_user
    
    # IP blocking
-   ./src/core/scripts/incident-response.sh --block-ip --address 192.168.1.100
+   ./scripts/incident-response.sh --block-ip --address 192.168.1.100
    
    # Session termination
-   ./src/core/scripts/incident-response.sh --terminate-session --session-id sess_12345
+   ./scripts/incident-response.sh --terminate-session --session-id sess_12345
    ```
 
 ### Incident Resolution Workflow
@@ -959,7 +959,7 @@ Structured incident resolution ensures thorough handling and documentation of se
 1. **Incident Report**:
    ```bash
    # Generate comprehensive incident report
-   ./src/core/scripts/incident-response.sh --generate-report --incident-id INC_20251031_092536_9312 --format detailed
+   ./scripts/incident-response.sh --generate-report --incident-id INC_20251031_092536_9312 --format detailed
    ```
 
 2. **Executive Summary**:
@@ -985,10 +985,10 @@ Structured incident resolution ensures thorough handling and documentation of se
 2. **Closure Process**:
    ```bash
    # Close incident
-   ./src/core/scripts/incident-response.sh --close-incident --incident-id INC_20251031_092536_9312
+   ./scripts/incident-response.sh --close-incident --incident-id INC_20251031_092536_9312
    
    # Archive incident
-   ./src/core/scripts/incident-response.sh --archive-incident --incident-id INC_20251031_092536_9312
+   ./scripts/incident-response.sh --archive-incident --incident-id INC_20251031_092536_9312
    ```
 
 ---
@@ -1038,13 +1038,13 @@ The Garuda Security Suite maintains several types of IOCs:
 2. **Via Command Line**:
    ```bash
    # Search IOCs
-   ./src/core/scripts/threat-intelligence-v2.sh --search --type ip --value 192.168.1.100
+   ./scripts/threat-intelligence.sh --search --type ip --value 192.168.1.100
    
    # List recent IOCs
-   ./src/core/scripts/threat-intelligence-v2.sh --list --recent --limit 100
+   ./scripts/threat-intelligence.sh --list --recent --limit 100
    
    # Get IOC details
-   ./src/core/scripts/threat-intelligence-v2.sh --details --ioc-id IOC_12345
+   ./scripts/threat-intelligence.sh --details --ioc-id IOC_12345
    ```
 
 3. **Via API**:
@@ -1110,7 +1110,7 @@ Threat feeds provide continuous updates to the IOC database from various intelli
 2. **Via Configuration File**:
    ```bash
    # Edit threat feed configuration
-   nano configs/threat-intelligence/feeds.conf
+   nano configs/threat_intelligence/feeds.conf
    
    # Example feed configuration
    FEED_URL="https://example.com/threat-feed.json"
@@ -1123,25 +1123,25 @@ Threat feeds provide continuous updates to the IOC database from various intelli
 
 1. **Add New Feed**:
    ```bash
-   ./src/core/scripts/threat-intelligence-v2.sh --add-feed --name "Custom Feed" --url "https://example.com/feed.json"
+   ./scripts/threat-intelligence.sh --add-feed --name "Custom Feed" --url "https://example.com/feed.json"
    ```
 
 2. **Update Feeds**:
    ```bash
    # Update all feeds
-   ./src/core/scripts/threat-intelligence-v2.sh --update-all-feeds
+   ./scripts/threat-intelligence.sh --update-all-feeds
    
    # Update specific feed
-   ./src/core/scripts/threat-intelligence-v2.sh --update-feed --name "Custom Feed"
+   ./scripts/threat-intelligence.sh --update-feed --name "Custom Feed"
    ```
 
 3. **Feed Status**:
    ```bash
    # Check feed status
-   ./src/core/scripts/threat-intelligence-v2.sh --feed-status
+   ./scripts/threat-intelligence.sh --feed-status
    
    # View feed statistics
-   ./src/core/scripts/threat-intelligence-v2.sh --feed-stats
+   ./scripts/threat-intelligence.sh --feed-stats
    ```
 
 ### Importing/Exporting Threat Data
@@ -1152,22 +1152,22 @@ The suite supports various formats for importing and exporting threat intelligen
 
 1. **STIX (Structured Threat Information eXpression)**:
    ```bash
-   ./src/core/scripts/threat-intelligence-v2.sh --import --format stix --file threat_data.stix
+   ./scripts/threat-intelligence.sh --import --format stix --file threat_data.stix
    ```
 
 2. **JSON (JavaScript Object Notation)**:
    ```bash
-   ./src/core/scripts/threat-intelligence-v2.sh --import --format json --file threat_data.json
+   ./scripts/threat-intelligence.sh --import --format json --file threat_data.json
    ```
 
 3. **CSV (Comma-Separated Values)**:
    ```bash
-   ./src/core/scripts/threat-intelligence-v2.sh --import --format csv --file threat_data.csv
+   ./scripts/threat-intelligence.sh --import --format csv --file threat_data.csv
    ```
 
 4. **XML (eXtensible Markup Language)**:
    ```bash
-   ./src/core/scripts/threat-intelligence-v2.sh --import --format xml --file threat_data.xml
+   ./scripts/threat-intelligence.sh --import --format xml --file threat_data.xml
    ```
 
 #### Export Formats
@@ -1175,19 +1175,19 @@ The suite supports various formats for importing and exporting threat intelligen
 1. **Export All IOCs**:
    ```bash
    # Export to JSON
-   ./src/core/scripts/threat-intelligence-v2.sh --export --format json --output all_iocs.json
+   ./scripts/threat-intelligence.sh --export --format json --output all_iocs.json
    
    # Export to STIX
-   ./src/core/scripts/threat-intelligence-v2.sh --export --format stix --output all_iocs.stix
+   ./scripts/threat-intelligence.sh --export --format stix --output all_iocs.stix
    ```
 
 2. **Export Filtered IOCs**:
    ```bash
    # Export by type
-   ./src/core/scripts/threat-intelligence-v2.sh --export --type ip --format json --output ip_iocs.json
+   ./scripts/threat-intelligence.sh --export --type ip --format json --output ip_iocs.json
    
    # Export by date range
-   ./src/core/scripts/threat-intelligence-v2.sh --export --start-date "2025-01-01" --end-date "2025-12-31" --format json --output recent_iocs.json
+   ./scripts/threat-intelligence.sh --export --start-date "2025-01-01" --end-date "2025-12-31" --format json --output recent_iocs.json
    ```
 
 3. **Via Web Dashboard**:
@@ -1219,19 +1219,19 @@ Regular updates ensure the threat intelligence database remains current and effe
 1. **Automatic Updates**:
    ```bash
    # Enable automatic updates
-   ./src/core/scripts/threat-intelligence-v2.sh --enable-auto-update --interval 3600
+   ./scripts/threat-intelligence.sh --enable-auto-update --interval 3600
    
    # Configure update schedule
-   ./src/core/scripts/threat-intelligence-v2.sh --schedule-update --time "02:00" --daily
+   ./scripts/threat-intelligence.sh --schedule-update --time "02:00" --daily
    ```
 
 2. **Manual Updates**:
    ```bash
    # Update all feeds
-   ./src/core/scripts/threat-intelligence-v2.sh --update-all-feeds
+   ./scripts/threat-intelligence.sh --update-all-feeds
    
    # Update specific feed
-   ./src/core/scripts/threat-intelligence-v2.sh --update-feed --name "Custom Feed"
+   ./scripts/threat-intelligence.sh --update-feed --name "Custom Feed"
    ```
 
 #### Update Process
@@ -1265,10 +1265,10 @@ Regular updates ensure the threat intelligence database remains current and effe
 1. **Update Status**:
    ```bash
    # Check last update time
-   ./src/core/scripts/threat-intelligence-v2.sh --last-update
+   ./scripts/threat-intelligence.sh --last-update
    
    # View update history
-   ./src/core/scripts/threat-intelligence-v2.sh --update-history
+   ./scripts/threat-intelligence.sh --update-history
    ```
 
 2. **Update Notifications**:
@@ -1288,13 +1288,13 @@ Regular updates ensure the threat intelligence database remains current and effe
 2. **Diagnostic Commands**:
    ```bash
    # Test feed connectivity
-   ./src/core/scripts/threat-intelligence-v2.sh --test-connection --feed "Custom Feed"
+   ./scripts/threat-intelligence.sh --test-connection --feed "Custom Feed"
    
    # Validate feed format
-   ./src/core/scripts/threat-intelligence-v2.sh --validate-feed --file feed_data.json
+   ./scripts/threat-intelligence.sh --validate-feed --file feed_data.json
    
    # Check database integrity
-   ./src/core/scripts/threat-intelligence-v2.sh --check-database
+   ./scripts/threat-intelligence.sh --check-database
    ```
 
 ---
@@ -1347,10 +1347,10 @@ The main configuration file is located at `configs/security-config.conf` and con
    nano configs/security-config.conf
    
    # Validate configuration
-   ./src/core/scripts/config-validator.sh --check
+   ./scripts/config-validator.sh --check
    
    # Apply configuration
-   ./src/core/scripts/config-applier.sh --apply
+   ./scripts/config-applier.sh --apply
    ```
 
 #### Configuration Backup and Restore
@@ -1358,19 +1358,19 @@ The main configuration file is located at `configs/security-config.conf` and con
 1. **Backup Configuration**:
    ```bash
    # Create backup
-   ./src/core/scripts/config-backup.sh --create
+   ./scripts/config-backup.sh --create
    
    # List backups
-   ./src/core/scripts/config-backup.sh --list
+   ./scripts/config-backup.sh --list
    
    # Restore from backup
-   ./src/core/scripts/config-backup.sh --restore --backup-id backup_20251031_120000
+   ./scripts/config-backup.sh --restore --backup-id backup_20251031_120000
    ```
 
 2. **Export Configuration**:
    ```bash
    # Export to file
-   ./src/core/scripts/config-export.sh --format json --output config_backup.json
+   ./scripts/config-export.sh --format json --output config_backup.json
    ```
 
 ### Behavioral Analysis Configuration
@@ -1714,8 +1714,8 @@ Scheduling configuration determines when automated security operations are perfo
    crontab -e
    
    # Example cron entries
-   0 2 * * * /opt/garuda-security-suite/src/core/scripts/security-daily-scan.sh
-   0 3 * * 0 /opt/garuda-security-suite/src/core/scripts/security-weekly-scan.sh
+   0 2 * * * $SECURITY_SUITE_HOME/scripts/security-daily-scan.sh
+   0 3 * * 0 $SECURITY_SUITE_HOME/scripts/security-weekly-scan.sh
    ```
 
 ---
@@ -1766,7 +1766,7 @@ This section addresses common issues that users may encounter while using the Ga
    - **Solution**: Reset admin password
    - **Command**: 
      ```bash
-     ./src/dashboard/reset-password.sh
+     ./web-dashboard/reset-password.sh
      ```
 
 3. **Real-time Updates Not Working**:
@@ -1865,10 +1865,10 @@ This section addresses common issues that users may encounter while using the Ga
    - **Command**: 
      ```bash
      # Check evidence directory
-     ls -la ~/garuda-security-suite/evidence/
+     ls -la $HOME/security-suite/evidence/
      
      # Check permissions
-     chmod 755 ~/garuda-security-suite/evidence/
+     chmod 755 $HOME/security-suite/evidence/
      ```
 
 #### Threat Intelligence Issues
@@ -1882,7 +1882,7 @@ This section addresses common issues that users may encounter while using the Ga
      curl -I https://example.com/threat-feed
      
      # Check feed configuration
-     ./scripts/threat-intelligence-v2.sh --test-connection
+     ./scripts/threat-intelligence.sh --test-connection
      ```
 
 2. **IOC Database Corruption**:
@@ -1891,7 +1891,7 @@ This section addresses common issues that users may encounter while using the Ga
    - **Command**: 
      ```bash
      # Rebuild database
-     ./scripts/threat-intelligence-v2.sh --rebuild-database
+     ./scripts/threat-intelligence.sh --rebuild-database
      ```
 
 ### Debug Procedures
@@ -1907,19 +1907,19 @@ When troubleshooting complex issues, follow these systematic debugging procedure
    export LOG_LEVEL=DEBUG
    
    # Run with debug
-   ./src/core/scripts/security-daily-scan.sh --debug
+   ./scripts/security-daily-scan.sh --debug
    ```
 
 2. **Component-specific Debug**:
    ```bash
    # Behavioral analysis debug
-   ./src/core/scripts/behavioral-analysis.sh --debug
+   ./scripts/behavioral-analysis.sh --debug
    
    # Incident response debug
-   ./src/core/scripts/incident-response.sh --debug
+   ./scripts/incident-response.sh --debug
    
    # Threat intelligence debug
-   ./src/core/scripts/threat-intelligence-v2.sh --debug
+   ./scripts/threat-intelligence.sh --debug
    ```
 
 #### Log Analysis
@@ -1934,16 +1934,16 @@ When troubleshooting complex issues, follow these systematic debugging procedure
 2. **Application Logs**:
    ```bash
    # View application logs
-   tail -f ~/garuda-security-suite/logs/security-suite.log
-   tail -f ~/garuda-security-suite/logs/behavioral-analysis.log
-   tail -f ~/garuda-security-suite/logs/incident-response.log
+   tail -f $HOME/security-suite/logs/security-suite.log
+   tail -f $HOME/security-suite/logs/behavioral-analysis.log
+   tail -f $HOME/security-suite/logs/incident-response.log
    ```
 
 3. **Error Logs**:
    ```bash
    # View error logs
-   tail -f ~/garuda-security-suite/logs/errors.log
-   grep -i error ~/garuda-security-suite/logs/*.log
+   tail -f $HOME/security-suite/logs/errors.log
+   grep -i error $HOME/security-suite/logs/*.log
    ```
 
 #### Diagnostic Commands
@@ -1951,25 +1951,25 @@ When troubleshooting complex issues, follow these systematic debugging procedure
 1. **System Diagnostics**:
    ```bash
    # Run system diagnostics
-   ./src/core/scripts/diagnostics.sh --system
+   ./scripts/diagnostics.sh --system
    
    # Check dependencies
-   ./src/core/scripts/diagnostics.sh --dependencies
+   ./scripts/diagnostics.sh --dependencies
    
    # Verify configuration
-   ./src/core/scripts/diagnostics.sh --config
+   ./scripts/diagnostics.sh --config
    ```
 
 2. **Component Diagnostics**:
    ```bash
    # Test security tools
-   ./src/core/scripts/diagnostics.sh --security-tools
+   ./scripts/diagnostics.sh --security-tools
    
    # Test behavioral analysis
-   ./src/core/scripts/diagnostics.sh --behavioral-analysis
+   ./scripts/diagnostics.sh --behavioral-analysis
    
    # Test threat intelligence
-   ./src/core/scripts/diagnostics.sh --threat-intelligence
+   ./scripts/diagnostics.sh --threat-intelligence
    ```
 
 #### Performance Analysis
@@ -1984,10 +1984,10 @@ When troubleshooting complex issues, follow these systematic debugging procedure
 2. **Performance Profiling**:
    ```bash
    # Profile script execution
-   time ./src/core/scripts/security-daily-scan.sh
+   time ./scripts/security-daily-scan.sh
    
    # Profile with detailed timing
-   ./src/core/scripts/security-daily-scan.sh --profile
+   ./scripts/security-daily-scan.sh --profile
    ```
 
 ### Log File Locations
@@ -1996,7 +1996,7 @@ The Garuda Security Suite maintains comprehensive logs for troubleshooting and a
 
 #### Main Log Directory
 
-All logs are stored in `~/garuda-security-suite/logs/`:
+All logs are stored in `$HOME/security-suite/logs/`:
 
 1. **Application Logs**:
    - `security-suite.log` - Main application log
@@ -2035,19 +2035,19 @@ All logs are stored in `~/garuda-security-suite/logs/`:
 1. **Log Viewer**:
    ```bash
    # View logs with filtering
-   ./src/core/scripts/log-viewer.sh --file security-suite.log --level ERROR
+   ./scripts/log-viewer.sh --file security-suite.log --level ERROR
    
    # Search logs
-   ./src/core/scripts/log-viewer.sh --search "malware detected" --file *.log
+   ./scripts/log-viewer.sh --search "malware detected" --file *.log
    ```
 
 2. **Log Statistics**:
    ```bash
    # Generate log statistics
-   ./src/core/scripts/log-analyzer.sh --stats --file security-suite.log
+   ./scripts/log-analyzer.sh --stats --file security-suite.log
    
    # Error analysis
-   ./src/core/scripts/log-analyzer.sh --errors --file *.log
+   ./scripts/log-analyzer.sh --errors --file *.log
    ```
 
 ### Support Resources
@@ -2131,7 +2131,7 @@ sudo freshclam
 sudo rkhunter --update
 
 # Start web dashboard
-cd src/dashboard
+cd web-dashboard
 ./start-dashboard.sh
 ```
 

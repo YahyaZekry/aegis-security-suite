@@ -7,9 +7,8 @@ Wants=network.target
 [Service]
 Type=simple
 User=${CURRENT_USER}
-Group=${CURRENT_USER}
 ExecStart=${SECURITY_SUITE_HOME}/scripts/behavioral-monitor-optimized.sh
-ExecReload=/bin/kill -HUP $MAINPID
+ExecReload=/bin/kill -HUP 
 KillMode=mixed
 KillSignal=SIGTERM
 TimeoutStopSec=30

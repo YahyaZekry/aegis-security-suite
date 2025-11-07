@@ -41,8 +41,8 @@ def get_behavioral_data(time_range='24h'):
         
         # Get behavioral metrics
         query = """
-        SELECT timestamp, cpu_usage, memory_usage, disk_io, network_io,
-               process_count, anomaly_score, threat_level
+        SELECT timestamp, cpu_usage, memory_usage, disk_io_reads, disk_io_writes,
+               active_processes, network_connections
         FROM system_metrics
         WHERE timestamp >= ?
         ORDER BY timestamp DESC
@@ -55,15 +55,19 @@ def get_behavioral_data(time_range='24h'):
         # Convert to list of dictionaries
         data = []
         for row in rows:
+            # Calculate combined disk_io and network_io for compatibility
+            disk_io = row[3] + row[4]  # reads + writes
+            network_io = row[5]  # network_connections
+            
             data.append({
                 'timestamp': row[0],
                 'cpu_usage': row[1],
                 'memory_usage': row[2],
-                'disk_io': row[3],
-                'network_io': row[4],
+                'disk_io': disk_io,
+                'network_io': network_io,
                 'process_count': row[5],
-                'anomaly_score': row[6],
-                'threat_level': row[7]
+                'anomaly_score': 0,  # Default value as column doesn't exist
+                'threat_level': 'low'  # Default value as column doesn't exist
             })
         
         conn.close()
@@ -115,8 +119,8 @@ def get_anomalies(limit=50, severity='all'):
             severity_filter = "AND severity = ?"
         
         query = f"""
-        SELECT id, timestamp, anomaly_type, description, severity,
-               affected_process, anomaly_score, resolved, resolution_notes
+        SELECT id, timestamp, anomaly_type, metric_name, current_value,
+               baseline_value, deviation_score, severity, threat_score, details, resolved
         FROM anomaly_events
         WHERE 1=1 {severity_filter}
         ORDER BY timestamp DESC
@@ -137,12 +141,12 @@ def get_anomalies(limit=50, severity='all'):
                 'id': row[0],
                 'timestamp': row[1],
                 'anomaly_type': row[2],
-                'description': row[3],
-                'severity': row[4],
-                'affected_process': row[5],
-                'anomaly_score': row[6],
-                'resolved': bool(row[7]),
-                'resolution_notes': row[8]
+                'description': f"{row[3]}: {row[4]} (baseline: {row[5]})",  # Combine metric_name and values
+                'severity': row[6],
+                'affected_process': row[3],  # Use metric_name as affected_process
+                'anomaly_score': row[7],  # Use threat_score as anomaly_score
+                'resolved': bool(row[9]),
+                'resolution_notes': row[8] if row[8] else None
             })
         
         conn.close()
@@ -173,11 +177,11 @@ def get_baseline_status():
         cursor = conn.cursor()
         
         # Check if baseline exists
-        cursor.execute("SELECT COUNT(*) FROM baseline")
+        cursor.execute("SELECT COUNT(*) FROM baseline_data WHERE is_active = 1")
         baseline_count = cursor.fetchone()[0]
         
         # Get last baseline update
-        cursor.execute("SELECT MAX(timestamp) FROM baseline")
+        cursor.execute("SELECT MAX(last_updated) FROM baseline_data WHERE is_active = 1")
         last_update = cursor.fetchone()[0]
         
         # Get total metrics count
@@ -222,10 +226,17 @@ def get_behavioral_statistics():
         """)
         anomaly_stats = dict(cursor.fetchall())
         
-        # Get threat level distribution
+        # Get threat level distribution from threat_scores table
         cursor.execute("""
-        SELECT threat_level, COUNT(*)
-        FROM system_metrics
+        SELECT
+            CASE
+                WHEN overall_score >= 80 THEN 'critical'
+                WHEN overall_score >= 60 THEN 'high'
+                WHEN overall_score >= 40 THEN 'medium'
+                ELSE 'low'
+            END as threat_level,
+            COUNT(*)
+        FROM threat_scores
         WHERE timestamp >= datetime('now', '-24 hours')
         GROUP BY threat_level
         """)
@@ -236,8 +247,8 @@ def get_behavioral_statistics():
         SELECT
             AVG(cpu_usage) as avg_cpu,
             AVG(memory_usage) as avg_memory,
-            AVG(anomaly_score) as avg_anomaly_score,
-            MAX(anomaly_score) as max_anomaly_score
+            AVG(disk_io_reads + disk_io_writes) as avg_disk_io,
+            AVG(active_processes) as avg_processes
         FROM system_metrics
         WHERE timestamp >= datetime('now', '-24 hours')
         """)
@@ -251,8 +262,10 @@ def get_behavioral_statistics():
             'average_metrics': {
                 'cpu_usage': avg_metrics[0] or 0,
                 'memory_usage': avg_metrics[1] or 0,
-                'anomaly_score': avg_metrics[2] or 0,
-                'max_anomaly_score': avg_metrics[3] or 0
+                'disk_io': avg_metrics[2] or 0,
+                'process_count': avg_metrics[3] or 0,
+                'anomaly_score': 0,  # Default value
+                'max_anomaly_score': 0  # Default value
             },
             'total_anomalies_7d': sum(anomaly_stats.values()),
             'high_risk_anomalies': anomaly_stats.get('high', 0) + anomaly_stats.get('critical', 0)
@@ -527,10 +540,10 @@ def resolve_anomaly(anomaly_id):
         
         # Update anomaly resolution
         cursor.execute("""
-        UPDATE anomalies 
-        SET resolved = 1, resolution_notes = ?, resolved_timestamp = ?
+        UPDATE anomaly_events
+        SET resolved = 1, details = ?
         WHERE id = ?
-        """, (resolution_notes, datetime.now().isoformat(), anomaly_id))
+        """, (resolution_notes, anomaly_id))
         
         conn.commit()
         affected_rows = cursor.rowcount

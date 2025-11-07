@@ -37,19 +37,19 @@ def ensure_incident_db():
         # Create incidents table if it doesn't exist
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS incidents (
-            id TEXT PRIMARY KEY,
-            title TEXT NOT NULL,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            incident_id TEXT UNIQUE NOT NULL,
             incident_type TEXT NOT NULL,
+            incident_details TEXT NOT NULL,
             severity TEXT NOT NULL,
-            status TEXT NOT NULL DEFAULT 'open',
-            description TEXT,
-            source TEXT,
-            created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL,
-            resolved_at TEXT,
-            assigned_to TEXT,
-            tags TEXT,
-            evidence_files TEXT
+            status TEXT DEFAULT 'open',
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            resolved_timestamp DATETIME,
+            actions_taken TEXT,
+            evidence_path TEXT,
+            false_positive BOOLEAN DEFAULT 0,
+            rollback_available BOOLEAN DEFAULT 0,
+            rollback_data TEXT
         )
         """)
         
@@ -88,7 +88,7 @@ def get_incidents(limit=50, status=None, severity=None, incident_type=None, offs
         cursor = conn.cursor()
         
         # Build query
-        query = "SELECT id, title, incident_type, severity, status, description, source, created_at, updated_at, resolved_at, assigned_to, tags FROM incidents WHERE 1=1"
+        query = "SELECT id, incident_id, incident_type, incident_details, severity, status, timestamp, resolved_timestamp, actions_taken FROM incidents WHERE 1=1"
         params = []
         
         if status:
@@ -104,12 +104,12 @@ def get_incidents(limit=50, status=None, severity=None, incident_type=None, offs
             params.append(incident_type)
         
         # Get total count
-        count_query = query.replace("SELECT id, title, incident_type, severity, status, description, source, created_at, updated_at, resolved_at, assigned_to, tags", "SELECT COUNT(*)")
+        count_query = query.replace("SELECT id, incident_id, incident_type, incident_details, severity, status, timestamp, resolved_timestamp, actions_taken", "SELECT COUNT(*)")
         cursor.execute(count_query, params)
         total = cursor.fetchone()[0]
         
         # Add pagination and ordering
-        query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
+        query += " ORDER BY timestamp DESC LIMIT ? OFFSET ?"
         params.extend([limit, offset])
         
         cursor.execute(query, params)
@@ -119,18 +119,18 @@ def get_incidents(limit=50, status=None, severity=None, incident_type=None, offs
         incidents = []
         for row in rows:
             incidents.append({
-                'id': row[0],
-                'title': row[1],
+                'id': row[1],  # Use incident_id as the public ID
+                'title': f"{row[2]} - {row[3][:50]}...",  # Combine type and details for title
                 'incident_type': row[2],
-                'severity': row[3],
-                'status': row[4],
-                'description': row[5],
-                'source': row[6],
-                'created_at': row[7],
-                'updated_at': row[8],
-                'resolved_at': row[9],
-                'assigned_to': row[10],
-                'tags': json.loads(row[11]) if row[11] else []
+                'severity': row[4],
+                'status': row[5],
+                'description': row[3],  # incident_details maps to description
+                'source': 'system',  # Default source
+                'created_at': row[6],
+                'updated_at': row[6],  # Use timestamp as updated_at
+                'resolved_at': row[7],
+                'assigned_to': None,  # Default value
+                'tags': []  # Default empty tags
             })
         
         conn.close()
@@ -160,9 +160,9 @@ def get_incident_by_id(incident_id):
         
         # Get incident details
         cursor.execute("""
-        SELECT id, title, incident_type, severity, status, description, source, 
-               created_at, updated_at, resolved_at, assigned_to, tags, evidence_files
-        FROM incidents WHERE id = ?
+        SELECT id, incident_id, incident_type, incident_details, severity, status,
+               timestamp, resolved_timestamp, actions_taken, evidence_path
+        FROM incidents WHERE incident_id = ?
         """, (incident_id,))
         
         row = cursor.fetchone()
@@ -171,19 +171,19 @@ def get_incident_by_id(incident_id):
             return None
         
         incident = {
-            'id': row[0],
-            'title': row[1],
+            'id': row[1],  # Use incident_id as the public ID
+            'title': f"{row[2]} - {row[3][:50]}...",  # Combine type and details for title
             'incident_type': row[2],
-            'severity': row[3],
-            'status': row[4],
-            'description': row[5],
-            'source': row[6],
-            'created_at': row[7],
-            'updated_at': row[8],
-            'resolved_at': row[9],
-            'assigned_to': row[10],
-            'tags': json.loads(row[11]) if row[11] else [],
-            'evidence_files': json.loads(row[12]) if row[12] else []
+            'severity': row[4],
+            'status': row[5],
+            'description': row[3],  # incident_details maps to description
+            'source': 'system',  # Default source
+            'created_at': row[6],
+            'updated_at': row[6],  # Use timestamp as updated_at
+            'resolved_at': row[7],
+            'assigned_to': None,  # Default value
+            'tags': [],  # Default empty tags
+            'evidence_files': [row[8]] if row[8] else []  # evidence_path as evidence_files
         }
         
         # Get incident updates
@@ -232,11 +232,9 @@ def create_incident(title, incident_type, severity, description, source='dashboa
         
         # Insert incident
         cursor.execute("""
-        INSERT INTO incidents (id, title, incident_type, severity, status, description, 
-                               source, created_at, updated_at, tags)
-        VALUES (?, ?, ?, ?, 'open', ?, ?, ?, ?, ?)
-        """, (incident_id, title, incident_type, severity, description, source, now, now, 
-              json.dumps(tags or [])))
+        INSERT INTO incidents (incident_id, incident_type, incident_details, severity, status, timestamp)
+        VALUES (?, ?, ?, ?, 'open', ?)
+        """, (incident_id, incident_type, description, severity, now))
         
         conn.commit()
         conn.close()
@@ -273,12 +271,23 @@ def update_incident(incident_id, updates):
         params = []
         
         for field, value in updates.items():
-            if field in ['title', 'incident_type', 'severity', 'status', 'description', 'assigned_to']:
-                set_clauses.append(f"{field} = ?")
-                params.append(value)
+            if field in ['title', 'incident_type', 'severity', 'status', 'description']:
+                # Map title to incident_details
+                if field == 'title':
+                    set_clauses.append("incident_details = ?")
+                    params.append(value)
+                elif field == 'description':
+                    set_clauses.append("incident_details = ?")
+                    params.append(value)
+                else:
+                    set_clauses.append(f"{field} = ?")
+                    params.append(value)
+            elif field == 'assigned_to':
+                # Skip assigned_to as it doesn't exist in the table
+                continue
             elif field == 'tags':
-                set_clauses.append("tags = ?")
-                params.append(json.dumps(value))
+                # Skip tags as it doesn't exist in the table
+                continue
         
         if not set_clauses:
             conn.close()
@@ -287,18 +296,14 @@ def update_incident(incident_id, updates):
                 'error': 'No valid fields to update'
             }
         
-        # Add updated_at
-        set_clauses.append("updated_at = ?")
-        params.append(datetime.now().isoformat())
-        
         # Add resolved_at if status is being set to resolved
         if 'status' in updates and updates['status'] == 'resolved':
-            set_clauses.append("resolved_at = ?")
+            set_clauses.append("resolved_timestamp = ?")
             params.append(datetime.now().isoformat())
         
         params.append(incident_id)
         
-        query = f"UPDATE incidents SET {', '.join(set_clauses)} WHERE id = ?"
+        query = f"UPDATE incidents SET {', '.join(set_clauses)} WHERE incident_id = ?"
         cursor.execute(query, params)
         
         affected_rows = cursor.rowcount
@@ -385,23 +390,23 @@ def get_incident_statistics():
         
         # Get recent incidents (last 7 days)
         cursor.execute("""
-        SELECT COUNT(*) FROM incidents 
-        WHERE created_at >= datetime('now', '-7 days')
+        SELECT COUNT(*) FROM incidents
+        WHERE timestamp >= datetime('now', '-7 days')
         """)
         recent_count = cursor.fetchone()[0]
         
         # Get resolved incidents (last 30 days)
         cursor.execute("""
-        SELECT COUNT(*) FROM incidents 
-        WHERE status = 'resolved' AND resolved_at >= datetime('now', '-30 days')
+        SELECT COUNT(*) FROM incidents
+        WHERE status = 'resolved' AND resolved_timestamp >= datetime('now', '-30 days')
         """)
         resolved_count = cursor.fetchone()[0]
         
         # Get average resolution time
         cursor.execute("""
-        SELECT AVG(julianday(resolved_at) - julianday(created_at)) * 24
-        FROM incidents 
-        WHERE status = 'resolved' AND resolved_at IS NOT NULL
+        SELECT AVG(julianday(resolved_timestamp) - julianday(timestamp)) * 24
+        FROM incidents
+        WHERE status = 'resolved' AND resolved_timestamp IS NOT NULL
         """)
         avg_resolution_time = cursor.fetchone()[0] or 0
         

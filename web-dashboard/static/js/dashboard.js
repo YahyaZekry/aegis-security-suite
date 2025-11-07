@@ -117,13 +117,18 @@ function connectWebSocket() {
         socket = io({
             transports: ['websocket', 'polling'],
             upgrade: true,
-            rememberUpgrade: true
+            rememberUpgrade: true,
+            timeout: 20000,
+            forceNew: true
         });
         
         socket.on('connect', function() {
             console.log('🔌 Connected to Garuda Security Server');
             showConnectionStatus('Connected', 'success');
             initializeConnectionHeartbeat();
+            
+            // Auto-subscribe to relevant rooms based on current page
+            autoSubscribeToRooms();
         });
         
         socket.on('disconnect', function(reason) {
@@ -136,15 +141,38 @@ function connectWebSocket() {
         socket.on('reconnect', function(attemptNumber) {
             console.log(`🔄 Reconnected after ${attemptNumber} attempts`);
             showConnectionStatus('Reconnected', 'success');
+            
+            // Re-subscribe to rooms after reconnection
+            autoSubscribeToRooms();
         });
         
+        socket.on('connect_error', function(error) {
+            console.error('❌ WebSocket connection error:', error);
+            showConnectionStatus('Connection Error', 'danger');
+            
+            // Try to fallback to polling if WebSocket fails
+            if (socket.io.engine.transport.name === 'polling') {
+                console.log('📡 Using HTTP polling fallback');
+                showConnectionStatus('Polling Mode', 'warning');
+            }
+        });
+        
+        // System events
         socket.on('system_update', handleSystemUpdate);
-        socket.on('threat_alert', handleThreatAlert);
-        socket.on('incident_created', handleIncidentCreated);
-        socket.on('scan_progress', handleScanProgress);
+        socket.on('security_status_update', handleSecurityStatusUpdate);
+        
+        // Behavioral analysis events
+        socket.on('behavioral_alert', handleBehavioralAlert);
+        
+        // Threat intelligence events
+        socket.on('threat_intelligence_update', handleThreatIntelligenceUpdate);
+        
+        // Incident management events
+        socket.on('incident_update', handleIncidentUpdate);
+        
+        // General events
         socket.on('status', handleStatusMessage);
-        socket.on('performance_data', handlePerformanceData);
-        socket.on('security_event', handleSecurityEvent);
+        socket.on('heartbeat_response', handleHeartbeatResponse);
         
     } catch (error) {
         console.error('❌ WebSocket connection failed:', error);
@@ -245,6 +273,57 @@ function handleSecurityEvent(data) {
         triggerVisualAlert('danger');
         playNotificationSound('critical');
     }
+}
+
+function handleSecurityStatusUpdate(data) {
+    updateSecuritySuiteStatus(data.security_status);
+    console.log('🛡️ Security suite status updated:', data);
+}
+
+function handleBehavioralAlert(data) {
+    showBehavioralAlert(data);
+    addNotificationToQueue({
+        type: 'behavioral',
+        title: 'Behavioral Alert',
+        message: `${data.anomaly_type}: ${data.description}`,
+        severity: data.severity || 'medium',
+        timestamp: new Date(),
+        data: data
+    });
+    
+    if (data.severity === 'high' || data.severity === 'critical') {
+        triggerVisualAlert('warning');
+        playNotificationSound('threat');
+    }
+}
+
+function handleThreatIntelligenceUpdate(data) {
+    updateThreatIntelligenceStatus(data.feeds_status);
+    console.log('🔍 Threat intelligence updated:', data);
+}
+
+function handleIncidentUpdate(data) {
+    updateIncidentList(data.incidents);
+    
+    // Show notification for new incidents
+    data.incidents.forEach(incident => {
+        if (incident.status === 'new' || incident.status === 'open') {
+            addNotificationToQueue({
+                type: 'incident',
+                title: 'Incident Update',
+                message: `${incident.incident_id}: ${incident.incident_type}`,
+                severity: incident.severity || 'medium',
+                timestamp: new Date(),
+                data: incident
+            });
+        }
+    });
+}
+
+function handleHeartbeatResponse(data) {
+    console.log('💓 Heartbeat response received:', data.timestamp);
+    // Update connection status indicator
+    updateConnectionLatency(data.timestamp);
 }
 
 /**
@@ -361,6 +440,9 @@ function startMonitoring() {
         showStatusMessage('Real-time monitoring started', 'success');
         updateMonitoringButton(true);
         startDataCollection();
+        
+        // Subscribe to all relevant rooms for comprehensive monitoring
+        subscribeToAllRooms();
     } else {
         showErrorMessage('Not connected to server');
     }
@@ -376,6 +458,9 @@ function stopMonitoring() {
         showStatusMessage('Real-time monitoring stopped', 'warning');
         updateMonitoringButton(false);
         stopDataCollection();
+        
+        // Unsubscribe from all rooms
+        unsubscribeFromAllRooms();
     }
 }
 
@@ -1131,6 +1216,176 @@ function startDataCollection() {
 function stopDataCollection() {
     // Stop collecting performance data
     console.log('⏹️ Data collection stopped');
+}
+
+function autoSubscribeToRooms() {
+    // Automatically subscribe to rooms based on current page
+    const currentPath = window.location.pathname;
+    
+    // Always subscribe to system updates
+    if (socket && socket.connected) {
+        socket.emit('subscribe_system');
+    }
+    
+    // Page-specific subscriptions
+    if (currentPath.includes('/behavioral')) {
+        socket.emit('subscribe_behavioral');
+    }
+    
+    if (currentPath.includes('/threats')) {
+        socket.emit('subscribe_threats');
+    }
+    
+    if (currentPath.includes('/incidents')) {
+        socket.emit('subscribe_incidents');
+    }
+}
+
+function subscribeToAllRooms() {
+    // Subscribe to all rooms for comprehensive monitoring
+    if (socket && socket.connected) {
+        socket.emit('subscribe_system');
+        socket.emit('subscribe_behavioral');
+        socket.emit('subscribe_threats');
+        socket.emit('subscribe_incidents');
+    }
+}
+
+function unsubscribeFromAllRooms() {
+    // Unsubscribe from all rooms
+    if (socket && socket.connected) {
+        socket.emit('unsubscribe_system');
+        socket.emit('unsubscribe_behavioral');
+        socket.emit('unsubscribe_threats');
+        socket.emit('unsubscribe_incidents');
+    }
+}
+
+function updateSecuritySuiteStatus(securityStatus) {
+    // Update security suite status indicators
+    const statusElement = document.getElementById('security-status');
+    if (statusElement && securityStatus) {
+        const overallStatus = securityStatus.overall_status || 'unknown';
+        statusElement.textContent = overallStatus.charAt(0).toUpperCase() + overallStatus.slice(1);
+        statusElement.className = `status-indicator ${overallStatus}`;
+    }
+    
+    // Update component status
+    if (securityStatus.components) {
+        Object.keys(securityStatus.components).forEach(component => {
+            const element = document.getElementById(`${component}-status`);
+            if (element) {
+                const status = securityStatus.components[component];
+                element.textContent = status.status;
+                element.className = `status-indicator ${status.status}`;
+            }
+        });
+    }
+}
+
+function showBehavioralAlert(data) {
+    // Show behavioral alert in the UI
+    const alertContainer = document.getElementById('behavioral-alerts');
+    if (alertContainer) {
+        const alertHtml = createBehavioralAlertHTML(data);
+        alertContainer.insertAdjacentHTML('afterbegin', alertHtml);
+        
+        // Auto-remove after timeout
+        setTimeout(() => {
+            const alertElement = alertContainer.querySelector(`[data-alert-id="${data.timestamp}"]`);
+            if (alertElement) {
+                alertElement.classList.add('fade-out');
+                setTimeout(() => alertElement.remove(), 300);
+            }
+        }, CONFIG.notificationTimeout);
+    }
+}
+
+function createBehavioralAlertHTML(data) {
+    const severityClass = `alert-${data.severity || 'info'}`;
+    return `
+        <div class="alert ${severityClass} alert-dismissible fade show behavioral-alert"
+             data-alert-id="${data.timestamp}">
+            <div class="d-flex align-items-start">
+                <div class="alert-icon me-3">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="alert-title fw-bold">${data.anomaly_type}</div>
+                    <div class="alert-message">${data.description}</div>
+                    <div class="alert-time text-muted small">${formatTime(data.timestamp)}</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        </div>
+    `;
+}
+
+function updateThreatIntelligenceStatus(feedsStatus) {
+    // Update threat intelligence status indicators
+    const feedsElement = document.getElementById('threat-feeds-status');
+    if (feedsElement && feedsStatus) {
+        const activeFeeds = feedsStatus.feeds ? feedsStatus.feeds.filter(f => f.status === 'active').length : 0;
+        const totalFeeds = feedsStatus.feeds ? feedsStatus.feeds.length : 0;
+        
+        feedsElement.textContent = `${activeFeeds}/${totalFeeds} Active`;
+    }
+}
+
+function updateIncidentList(incidents) {
+    // Update incident list in the UI
+    const incidentContainer = document.getElementById('incident-list');
+    if (incidentContainer && incidents) {
+        // Clear existing incidents
+        incidentContainer.innerHTML = '';
+        
+        // Add new incidents
+        incidents.forEach(incident => {
+            const incidentHtml = createIncidentHTML(incident);
+            incidentContainer.insertAdjacentHTML('beforeend', incidentHtml);
+        });
+    }
+}
+
+function createIncidentHTML(incident) {
+    const severityClass = `severity-${incident.severity || 'medium'}`;
+    const statusClass = `status-${incident.status || 'open'}`;
+    
+    return `
+        <div class="incident-item ${severityClass} ${statusClass}" data-incident-id="${incident.incident_id}">
+            <div class="incident-header">
+                <div class="incident-id">${incident.incident_id}</div>
+                <div class="incident-severity">${incident.severity || 'medium'}</div>
+                <div class="incident-status">${incident.status || 'open'}</div>
+            </div>
+            <div class="incident-body">
+                <div class="incident-type">${incident.incident_type}</div>
+                <div class="incident-description">${incident.description || 'No description available'}</div>
+                <div class="incident-time">${formatTime(incident.timestamp)}</div>
+            </div>
+        </div>
+    `;
+}
+
+function updateConnectionLatency(timestamp) {
+    // Calculate and display connection latency
+    const latencyElement = document.getElementById('connection-latency');
+    if (latencyElement) {
+        const serverTime = new Date(timestamp);
+        const clientTime = new Date();
+        const latency = Math.abs(clientTime - serverTime);
+        
+        latencyElement.textContent = `${latency}ms`;
+        
+        // Update latency indicator color
+        if (latency < 100) {
+            latencyElement.className = 'text-success';
+        } else if (latency < 500) {
+            latencyElement.className = 'text-warning';
+        } else {
+            latencyElement.className = 'text-danger';
+        }
+    }
 }
 
 function storeSystemMetrics(data) {

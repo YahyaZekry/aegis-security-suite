@@ -1,0 +1,508 @@
+{% extends "base.html" %}
+
+{% block title %}Security Dashboard{% endblock %}
+{% block page_subtitle %}Real-time security monitoring and alerts{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Security Dashboard Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-left border-primary">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Security Status
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="security-status">
+                                Loading...
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-shield-alt fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Security Metrics -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Unacknowledged Alerts
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="unacknowledged-alerts">
+                                0
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Recent Events
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="recent-events">
+                                0
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-list fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                High Risk Findings
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="high-risk-findings">
+                                0
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-bug fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                Active Scans
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="active-scans">
+                                0
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-search fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Security Alerts and Events -->
+    <div class="row">
+        <!-- Security Alerts -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Security Alerts</h6>
+                    <div class="dropdown no-arrow">
+                        <a class="dropdown-toggle" href="#" role="button" id="alertDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="alertDropdown">
+                            <a class="dropdown-item" href="#" onclick="refreshAlerts()">Refresh</a>
+                            <a class="dropdown-item" href="#" onclick="acknowledgeAllAlerts()">Acknowledge All</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="alerts-table" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Severity</th>
+                                    <th>Title</th>
+                                    <th>Time</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="alerts-tbody">
+                                <tr>
+                                    <td colspan="4" class="text-center">Loading alerts...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security Events -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Security Events</h6>
+                    <div class="dropdown no-arrow">
+                        <a class="dropdown-toggle" href="#" role="button" id="eventDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="eventDropdown">
+                            <a class="dropdown-item" href="#" onclick="refreshEvents()">Refresh</a>
+                            <a class="dropdown-item" href="#" onclick="filterEvents('high')">High Severity</a>
+                            <a class="dropdown-item" href="#" onclick="filterEvents('medium')">Medium Severity</a>
+                            <a class="dropdown-item" href="#" onclick="filterEvents('low')">Low Severity</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="events-table" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Severity</th>
+                                    <th>Title</th>
+                                    <th>Time</th>
+                                </tr>
+                            </thead>
+                            <tbody id="events-tbody">
+                                <tr>
+                                    <td colspan="4" class="text-center">Loading events...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Scans -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Recent Security Scans</h6>
+                    <div class="dropdown no-arrow">
+                        <a class="dropdown-toggle" href="#" role="button" id="scanDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="scanDropdown">
+                            <a class="dropdown-item" href="#" onclick="refreshScans()">Refresh</a>
+                            <a class="dropdown-item" href="#" onclick="startNewScan()">Start New Scan</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="scans-table" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Scan Type</th>
+                                    <th>Status</th>
+                                    <th>Started</th>
+                                    <th>Completed</th>
+                                    <th>Findings</th>
+                                    <th>High Risk</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="scans-tbody">
+                                <tr>
+                                    <td colspan="7" class="text-center">Loading scans...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Security Dashboard JavaScript -->
+<script>
+let securityData = {
+    alerts: [],
+    events: [],
+    scans: [],
+    metrics: {}
+};
+
+// Initialize security dashboard
+document.addEventListener('DOMContentLoaded', function() {
+    loadSecurityDashboard();
+    
+    // Set up auto-refresh
+    setInterval(loadSecurityDashboard, 30000); // Refresh every 30 seconds
+});
+
+function loadSecurityDashboard() {
+    fetch('/api/security/dashboard')
+        .then(response => response.json())
+        .then(data => {
+            securityData = data;
+            updateSecurityMetrics();
+            updateSecurityAlerts();
+            updateSecurityEvents();
+            updateSecurityScans();
+        })
+        .catch(error => {
+            console.error('Error loading security dashboard:', error);
+            showErrorMessage('Failed to load security dashboard data');
+        });
+}
+
+function updateSecurityMetrics() {
+    const summary = securityData.summary || {};
+    
+    document.getElementById('unacknowledged-alerts').textContent = summary.unacknowledged_alerts_count || 0;
+    document.getElementById('recent-events').textContent = summary.total_events || 0;
+    document.getElementById('high-risk-findings').textContent = summary.high_risk_findings || 0;
+    document.getElementById('active-scans').textContent = summary.recent_scans_count || 0;
+    
+    // Update security status based on metrics
+    const statusElement = document.getElementById('security-status');
+    if (summary.high_risk_findings > 0) {
+        statusElement.textContent = 'CRITICAL';
+        statusElement.className = 'h5 mb-0 font-weight-bold text-danger';
+    } else if (summary.unacknowledged_alerts_count > 0) {
+        statusElement.textContent = 'WARNING';
+        statusElement.className = 'h5 mb-0 font-weight-bold text-warning';
+    } else {
+        statusElement.textContent = 'SECURE';
+        statusElement.className = 'h5 mb-0 font-weight-bold text-success';
+    }
+}
+
+function updateSecurityAlerts() {
+    const alerts = securityData.unacknowledged_alerts || [];
+    const tbody = document.getElementById('alerts-tbody');
+    
+    if (alerts.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center">No unacknowledged alerts</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = alerts.map(alert => `
+        <tr>
+            <td>
+                <span class="badge badge-${getSeverityClass(alert.severity)}">${alert.severity.toUpperCase()}</span>
+            </td>
+            <td>${alert.title}</td>
+            <td>${formatDate(alert.timestamp)}</td>
+            <td>
+                <button class="btn btn-sm btn-primary" onclick="acknowledgeAlert(${alert.id})">
+                    Acknowledge
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function updateSecurityEvents() {
+    const events = securityData.recent_events || [];
+    const tbody = document.getElementById('events-tbody');
+    
+    if (events.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center">No recent events</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = events.map(event => `
+        <tr>
+            <td>${event.event_type}</td>
+            <td>
+                <span class="badge badge-${getSeverityClass(event.severity)}">${event.severity.toUpperCase()}</span>
+            </td>
+            <td>${event.title}</td>
+            <td>${formatDate(event.timestamp)}</td>
+        </tr>
+    `).join('');
+}
+
+function updateSecurityScans() {
+    const scans = securityData.recent_scans || [];
+    const tbody = document.getElementById('scans-tbody');
+    
+    if (scans.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center">No recent scans</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = scans.map(scan => `
+        <tr>
+            <td>${scan.scan_type}</td>
+            <td>
+                <span class="badge badge-${getStatusClass(scan.status)}">${scan.status.toUpperCase()}</span>
+            </td>
+            <td>${formatDate(scan.started_at)}</td>
+            <td>${scan.completed_at ? formatDate(scan.completed_at) : 'Running'}</td>
+            <td>${scan.findings_count || 0}</td>
+            <td>${scan.high_risk_count || 0}</td>
+            <td>
+                ${scan.status === 'completed' ? 
+                    `<button class="btn btn-sm btn-info" onclick="viewScanResults(${scan.id})">
+                        View Results
+                    </button>` :
+                    `<button class="btn btn-sm btn-warning" onclick="monitorScan(${scan.id})">
+                        Monitor
+                    </button>`
+                }
+            </td>
+        </tr>
+    `).join('');
+}
+
+function getSeverityClass(severity) {
+    switch (severity.toLowerCase()) {
+        case 'critical': return 'danger';
+        case 'high': return 'danger';
+        case 'medium': return 'warning';
+        case 'low': return 'info';
+        default: return 'secondary';
+    }
+}
+
+function getStatusClass(status) {
+    switch (status.toLowerCase()) {
+        case 'completed': return 'success';
+        case 'running': return 'info';
+        case 'failed': return 'danger';
+        default: return 'secondary';
+    }
+}
+
+function formatDate(timestamp) {
+    const date = new Date(timestamp);
+    return date.toLocaleString();
+}
+
+function acknowledgeAlert(alertId) {
+    fetch(`/api/security/alerts/${alertId}/acknowledge`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccessMessage('Alert acknowledged successfully');
+            loadSecurityDashboard();
+        } else {
+            showErrorMessage('Failed to acknowledge alert: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error acknowledging alert:', error);
+        showErrorMessage('Failed to acknowledge alert');
+    });
+}
+
+function acknowledgeAllAlerts() {
+    // This would need to be implemented on the backend
+    showInfoMessage('Bulk acknowledge functionality coming soon');
+}
+
+function refreshAlerts() {
+    loadSecurityDashboard();
+}
+
+function refreshEvents() {
+    loadSecurityDashboard();
+}
+
+function refreshScans() {
+    loadSecurityDashboard();
+}
+
+function filterEvents(severity) {
+    // This would filter events by severity
+    showInfoMessage(`Filtering events by ${severity} severity`);
+}
+
+function startNewScan() {
+    fetch('/api/security/scans/start', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify({
+            scan_type: 'manual_vulnerability'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccessMessage('Security scan started successfully');
+            loadSecurityDashboard();
+        } else {
+            showErrorMessage('Failed to start scan: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error starting scan:', error);
+        showErrorMessage('Failed to start security scan');
+    });
+}
+
+function viewScanResults(scanId) {
+    // This would open a modal or navigate to scan results
+    showInfoMessage(`Viewing results for scan ${scanId}`);
+}
+
+function monitorScan(scanId) {
+    // This would open a monitoring modal
+    showInfoMessage(`Monitoring scan ${scanId}`);
+}
+
+function getCsrfToken() {
+    // Get CSRF token from meta tag or form
+    const metaTag = document.querySelector('meta[name="csrf-token"]');
+    return metaTag ? metaTag.getAttribute('content') : '';
+}
+
+function showSuccessMessage(message) {
+    // Show success notification
+    if (window.showNotification) {
+        window.showNotification(message, 'success');
+    } else {
+        alert(message);
+    }
+}
+
+function showErrorMessage(message) {
+    // Show error notification
+    if (window.showNotification) {
+        window.showNotification(message, 'error');
+    } else {
+        alert(message);
+    }
+}
+
+function showInfoMessage(message) {
+    // Show info notification
+    if (window.showNotification) {
+        window.showNotification(message, 'info');
+    } else {
+        alert(message);
+    }
+}
+</script>
+{% endblock %}

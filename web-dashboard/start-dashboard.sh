@@ -288,7 +288,7 @@ show_help() {
     echo "  help      Show this help message"
     echo ""
     echo "Environment Variables:"
-    echo "  SECURITY_SUITE_HOME    Path to security suite installation (default: /opt/garuda-security-suite)"
+    echo "  SECURITY_SUITE_HOME    Path to security suite installation (default: \$HOME/security-suite)"
     echo "  DASHBOARD_PORT        Dashboard port (default: 8080)"
     echo ""
     echo "Examples:"

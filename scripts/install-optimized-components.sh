@@ -229,7 +229,12 @@ install_memory_monitor() {
     
     # Install systemd service
     if [ -f "$SCRIPT_DIR/memory-monitor.service" ]; then
-        cp "$SCRIPT_DIR/memory-monitor.service" "/etc/systemd/user/memory-monitor.service"
+        # Create user systemd directory if it doesn't exist
+        mkdir -p "$HOME/.config/systemd/user"
+        
+        # Process service template to replace variables
+        sed "s|\${SECURITY_SUITE_HOME}|$SECURITY_SUITE_HOME|g" \
+            "$SCRIPT_DIR/memory-monitor.service" > "$HOME/.config/systemd/user/memory-monitor.service"
         
         # Reload systemd
         systemctl --user daemon-reload

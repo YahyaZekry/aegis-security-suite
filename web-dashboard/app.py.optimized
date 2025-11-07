@@ -16,7 +16,7 @@ from flask_socketio import SocketIO, emit
 
 # Import security utilities and authentication
 from security_utils import SecurityLogger, InputValidator
-from auth import require_auth, login_required
+from auth import require_auth, login_required, authenticate_user, create_user_session, destroy_session
 
 # Import API modules
 from api.system import system_bp
@@ -232,6 +232,47 @@ def too_large(error):
     return jsonify({'error': 'File too large'}), 413
 
 # Routes
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Login page and authentication"""
+    if request.method == 'GET':
+        return render_template('login.html')
+    
+    # Handle POST login
+    username = request.form.get('username', '')
+    password = request.form.get('password', '')
+    
+    # Authenticate user
+    auth_result = authenticate_user(username, password, request.remote_addr, request.headers.get('User-Agent'))
+    
+    if auth_result['success']:
+        # Create session
+        session_id = create_user_session(
+            auth_result['user_id'],
+            auth_result['username'],
+            auth_result['role'],
+            request.remote_addr,
+            request.headers.get('User-Agent')
+        )
+        
+        if session_id:
+            session['session_id'] = session_id
+            return redirect(url_for('dashboard'))
+        else:
+            flash('Session creation failed', 'error')
+            return render_template('login.html', error='Session creation failed')
+    else:
+        return render_template('login.html', error=auth_result['error'])
+
+@app.route('/logout')
+def logout():
+    """Logout route"""
+    session_id = session.get('session_id')
+    if session_id:
+        destroy_session(session_id)
+    session.clear()
+    return redirect(url_for('login'))
+
 @app.route('/')
 @login_required
 def dashboard():

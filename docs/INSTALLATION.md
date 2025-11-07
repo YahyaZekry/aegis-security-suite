@@ -145,8 +145,8 @@ chmod 700 ~/security-suite/backups
 
 ```bash
 # Copy script files
-cp -r src/core/scripts/* ~/security-suite/scripts/
-cp -r src/dashboard/* ~/security-suite/web-dashboard/
+cp -r scripts/* ~/security-suite/scripts/
+cp -r web-dashboard/* ~/security-suite/web-dashboard/
 cp -r configs/* ~/security-suite/configs/
 
 # Set script permissions
@@ -222,8 +222,8 @@ After=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=$HOME/security-suite/scripts/security-daily-scan.sh
-WorkingDirectory=$HOME/security-suite/scripts
+ExecStart=$SECURITY_SUITE_HOME/scripts/security-daily-scan.sh
+WorkingDirectory=$SECURITY_SUITE_HOME/scripts
 StandardOutput=journal
 StandardError=journal
 Environment=USER=$USER
@@ -255,8 +255,8 @@ After=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=$HOME/security-suite/scripts/security-weekly-scan.sh
-WorkingDirectory=$HOME/security-suite/scripts
+ExecStart=$SECURITY_SUITE_HOME/scripts/security-weekly-scan.sh
+WorkingDirectory=$SECURITY_SUITE_HOME/scripts
 StandardOutput=journal
 StandardError=journal
 Environment=USER=$USER
@@ -288,8 +288,8 @@ After=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=$HOME/security-suite/scripts/security-monthly-scan.sh
-WorkingDirectory=$HOME/security-suite/scripts
+ExecStart=$SECURITY_SUITE_HOME/scripts/security-monthly-scan.sh
+WorkingDirectory=$SECURITY_SUITE_HOME/scripts
 StandardOutput=journal
 StandardError=journal
 Environment=USER=$USER
@@ -337,7 +337,7 @@ To install to a custom directory:
 
 ```bash
 # Set custom installation directory
-export SECURITY_SUITE_HOME="/opt/security-suite"
+export SECURITY_SUITE_HOME="$HOME/security-suite"
 
 # Run setup with custom path
 ./setup-security-suite.sh --install-dir "$SECURITY_SUITE_HOME"
@@ -538,21 +538,21 @@ cat ~/security-suite/logs/audit/security_audit_*.log
 
 ```bash
 # Run comprehensive tests
-~/security-suite/scripts/test-security-components.sh
+$SECURITY_SUITE_HOME/scripts/test-security-components.sh
 
 # Run specific test
-~/security-suite/scripts/test-security-components.sh --test clamav
-~/security-suite/scripts/test-security-components.sh --test rkhunter
+$SECURITY_SUITE_HOME/scripts/test-security-components.sh --test clamav
+$SECURITY_SUITE_HOME/scripts/test-security-components.sh --test rkhunter
 ```
 
 #### Verify Installation
 
 ```bash
 # Check installation status
-~/security-suite/scripts/test-security-components.sh --verify
+$SECURITY_SUITE_HOME/scripts/test-security-components.sh --verify
 
 # Check all components
-~/security-suite/scripts/test-security-components.sh --all
+$SECURITY_SUITE_HOME/scripts/test-security-components.sh --all
 ```
 
 ### Performance Issues
@@ -635,23 +635,23 @@ systemctl --user start security-monthly-scan.timer
 
 ```bash
 # Export current configuration
-~/security-suite/scripts/export-config.sh > current-config.txt
+$SECURITY_SUITE_HOME/scripts/export-config.sh > current-config.txt
 
 # Install new version
 ./setup-security-suite.sh --fresh-install
 
 # Import configuration
-~/security-suite/scripts/import-config.sh current-config.txt
+$SECURITY_SUITE_HOME/scripts/import-config.sh current-config.txt
 ```
 
 ### Backup and Restore
 
 ```bash
 # Create backup
-~/security-suite/scripts/backup-config.sh
+$SECURITY_SUITE_HOME/scripts/backup-config.sh
 
 # Restore from backup
-~/security-suite/scripts/restore-config.sh backup_20231029_120000.tar.gz
+$SECURITY_SUITE_HOME/scripts/restore-config.sh backup_20231029_120000.tar.gz
 ```
 
 ## Uninstallation

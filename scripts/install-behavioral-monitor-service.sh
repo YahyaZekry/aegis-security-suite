@@ -12,7 +12,14 @@ NC='\033[0m' # No Color
 
 # Script configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SECURITY_SUITE_HOME="$(dirname "$SCRIPT_DIR")"
+
+# Source common functions for user detection
+if [ -f "$SCRIPT_DIR/common-functions.sh" ]; then
+    source "$SCRIPT_DIR/common-functions.sh"
+fi
+
+# Setup user environment (will set CURRENT_USER, CURRENT_HOME, SECURITY_SUITE_HOME)
+setup_user_environment
 
 # Function to print colored output
 print_status() {
