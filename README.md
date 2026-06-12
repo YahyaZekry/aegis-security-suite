@@ -73,4 +73,4 @@ REST endpoints at `/api/auth/`, `/api/behavioral/`, `/api/incidents/`, `/api/sys
 
 ## 📄 License
 
-MIT
+[MIT](LICENSE) — free to use, modify, and distribute. See the [LICENSE](LICENSE) file for details.
