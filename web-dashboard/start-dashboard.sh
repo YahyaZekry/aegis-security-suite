@@ -138,8 +138,8 @@ check_security_suite() {
     done
     
     # Check for web dashboard specific requirements
-    if [[ ! -f "$SECURITY_SUITE_HOME/web-dashboard/app-optimized.py" ]]; then
-        print_error "Web dashboard application not found at $SECURITY_SUITE_HOME/web-dashboard/app-optimized.py"
+    if [[ ! -f "$SECURITY_SUITE_HOME/web-dashboard/app.py" ]]; then
+        print_error "Web dashboard application not found at $SECURITY_SUITE_HOME/web-dashboard/app.py"
         exit 1
     fi
     
@@ -152,7 +152,7 @@ setup_environment() {
     
     # Set environment variables
     export SECURITY_SUITE_HOME="$SECURITY_SUITE_HOME"
-    export FLASK_APP="$SCRIPT_DIR/app-optimized.py"
+    export FLASK_APP="$SCRIPT_DIR/app.py"
     export FLASK_ENV="production"
     export DASHBOARD_CONFIG="$SCRIPT_DIR/config/dashboard.conf"
     
@@ -198,13 +198,13 @@ start_dashboard() {
     }
     
     # Check if app.py exists
-    if [[ ! -f "app-optimized.py" ]]; then
-        print_error "Dashboard application not found: app-optimized.py"
+    if [[ ! -f "app.py" ]]; then
+        print_error "Dashboard application not found: app.py"
         exit 1
     fi
     
     # Start the dashboard in background
-    nohup python3 app-optimized.py > "$SECURITY_SUITE_HOME/logs/web-dashboard.log" 2>&1 &
+    nohup python3 app.py > "$SECURITY_SUITE_HOME/logs/web-dashboard.log" 2>&1 &
     local pid=$!
     
     # Save PID

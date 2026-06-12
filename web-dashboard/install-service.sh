@@ -64,7 +64,7 @@ validate_installation() {
     fi
     
     # Check if main app file exists
-    if [[ ! -f "$SECURITY_SUITE_HOME/web-dashboard/app-optimized.py" ]]; then
+    if [[ ! -f "$SECURITY_SUITE_HOME/web-dashboard/app.py" ]]; then
         print_error "Dashboard application file not found"
         exit 1
     fi
@@ -139,7 +139,7 @@ configure_service() {
 # Garuda Security Suite Dashboard Environment Configuration
 SECURITY_SUITE_HOME="$SECURITY_SUITE_HOME"
 FLASK_ENV=production
-FLASK_APP=app-optimized.py
+FLASK_APP=app.py
 DASHBOARD_PORT=8080
 DASHBOARD_HOST=127.0.0.1
 EOF

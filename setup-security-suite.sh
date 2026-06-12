@@ -833,7 +833,7 @@ After=network-online.target
 Type=simple
 User=$CURRENT_USER
 WorkingDirectory=$SECURITY_SUITE_HOME/web-dashboard
-ExecStart=$SECURITY_SUITE_HOME/web-dashboard/venv/bin/python app-optimized.py
+ExecStart=$SECURITY_SUITE_HOME/web-dashboard/venv/bin/python app.py
 Restart=always
 RestartSec=10
 Environment=PYTHONPATH=$SECURITY_SUITE_HOME/web-dashboard

@@ -10,9 +10,9 @@ User=${CURRENT_USER}
 WorkingDirectory=${SECURITY_SUITE_HOME}/web-dashboard
 Environment=SECURITY_SUITE_HOME=${SECURITY_SUITE_HOME}
 Environment=FLASK_ENV=production
-Environment=FLASK_APP=app-optimized.py
+Environment=FLASK_APP=app.py
 Environment=PYTHONPATH=${SECURITY_SUITE_HOME}/web-dashboard
-ExecStart=/usr/bin/python3 ${SECURITY_SUITE_HOME}/web-dashboard/app-optimized.py
+ExecStart=/usr/bin/python3 ${SECURITY_SUITE_HOME}/web-dashboard/app.py
 ExecReload=/bin/kill -HUP $MAINPID
 KillMode=mixed
 TimeoutStopSec=30

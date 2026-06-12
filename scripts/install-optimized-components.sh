@@ -75,10 +75,6 @@ install_optimized_behavioral_monitoring() {
     chmod +x "$SCRIPT_DIR/behavioral-monitor-optimized.sh"
     chmod +x "$SCRIPT_DIR/behavioral-analysis-optimized.sh"
     
-    # Create symbolic links
-    ln -sf "behavioral-monitor-optimized.sh" "$SCRIPT_DIR/behavioral-monitor.sh.optimized"
-    ln -sf "behavioral-analysis-optimized.sh" "$SCRIPT_DIR/behavioral-analysis.sh.optimized"
-    
     # Update systemd service
     if [ -f "$SCRIPT_DIR/behavioral-monitor.service" ]; then
         cp "$SCRIPT_DIR/behavioral-monitor.service" "$BACKUP_DIR/behavioral-monitor.service.backup"
@@ -140,9 +136,6 @@ install_optimized_threat_intelligence() {
     # Make script executable
     chmod +x "$SCRIPT_DIR/threat-intelligence-optimized.sh"
     
-    # Create symbolic link
-    ln -sf "threat-intelligence-optimized.sh" "$SCRIPT_DIR/threat-intelligence.sh.optimized"
-    
     log_success "Optimized threat intelligence installed"
 }
 
@@ -151,7 +144,7 @@ install_optimized_web_dashboard() {
     log_info "Installing optimized web dashboard..."
     
     # Create optimized app file
-    cp "$SCRIPT_DIR/../web-dashboard/app-optimized.py" "$SCRIPT_DIR/../web-dashboard/app.py.optimized"
+    cp "$SCRIPT_DIR/../web-dashboard/app.py" "$BACKUP_DIR/web-dashboard/app.py"
     
     # Update requirements if needed
     local requirements_file="$SCRIPT_DIR/../web-dashboard/requirements-optimized.txt"
@@ -181,7 +174,7 @@ Type=simple
 User=$CURRENT_USER
 Group=$CURRENT_USER
 WorkingDirectory=$SECURITY_SUITE_HOME/web-dashboard
-ExecStart=/usr/bin/python3 $SECURITY_SUITE_HOME/web-dashboard/app-optimized.py
+ExecStart=/usr/bin/python3 $SECURITY_SUITE_HOME/web-dashboard/app.py
 ExecReload=/bin/kill -HUP $MAINPID
 KillMode=mixed
 KillSignal=SIGTERM
@@ -256,9 +249,6 @@ install_db_connection_manager() {
     # Make script executable
     chmod +x "$SCRIPT_DIR/db-connection-manager.sh"
     
-    # Create symbolic link
-    ln -sf "db-connection-manager.sh" "$SCRIPT_DIR/db-connection-manager.optimized"
-    
     log_success "Database connection manager installed"
 }
 
@@ -268,9 +258,6 @@ install_performance_tools() {
     
     # Make script executable
     chmod +x "$SCRIPT_DIR/performance-test-optimized.sh"
-    
-    # Create symbolic link
-    ln -sf "performance-test-optimized.sh" "$SCRIPT_DIR/performance-test.sh.optimized"
     
     log_success "Performance testing tools installed"
 }
@@ -344,16 +331,6 @@ echo "Enabling optimized Garuda Security Suite components..."
 # Stop existing services
 systemctl --user stop garuda-behavioral-monitor 2>/dev/null || true
 systemctl --user stop garuda-dashboard 2>/dev/null || true
-
-# Enable optimized behavioral monitoring
-ln -sf "behavioral-monitor-optimized.sh" "$SCRIPT_DIR/behavioral-monitor-optimized"
-ln -sf "behavioral-analysis-optimized.sh" "$SCRIPT_DIR/behavioral-analysis-optimized"
-
-# Enable optimized threat intelligence
-ln -sf "threat-intelligence-optimized.sh" "$SCRIPT_DIR/threat-intelligence.sh"
-
-# Enable optimized web dashboard
-ln -sf "app-optimized.py" "$SCRIPT_DIR/../web-dashboard/app-optimized"
 
 # Start optimized services
 systemctl --user daemon-reload
@@ -436,7 +413,7 @@ verify_installation() {
     done
     
     # Check optimized web dashboard
-    if [ -f "$SCRIPT_DIR/../web-dashboard/app-optimized.py" ]; then
+    if [ -f "$SCRIPT_DIR/../web-dashboard/app.py" ]; then
         log_success "✓ Optimized web dashboard installed"
     else
         log_error "✗ Optimized web dashboard missing"

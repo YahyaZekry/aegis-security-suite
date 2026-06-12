@@ -231,7 +231,7 @@ test_web_dashboard() {
     # Start optimized web dashboard
     local dashboard_log="$SECURITY_SUITE_HOME/logs/dashboard-test-$(date +%Y%m%d_%H%M%S).log"
     cd "$SECURITY_SUITE_HOME/web-dashboard"
-    python3 app-optimized.py > "$dashboard_log" 2>&1 &
+    python3 app.py > "$dashboard_log" 2>&1 &
     local dashboard_pid=$!
     
     # Wait for dashboard to start
@@ -252,7 +252,7 @@ test_web_dashboard() {
         local cpu_percent=$(get_cpu_usage)
         
         # Get process info
-        local process_info=$(get_process_info "app-optimized.py")
+        local process_info=$(get_process_info "app.py")
         local process_cpu=$(echo "$process_info" | cut -d: -f2)
         local process_mem_mb=$(echo "$process_info" | cut -d: -f3)
         

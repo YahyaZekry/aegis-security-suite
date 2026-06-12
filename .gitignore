@@ -69,6 +69,7 @@ configs/local-*.conf
 *.backup
 *.old
 *.previous
+*.optimized
 
 # Development and debugging
 debug/
@@ -154,6 +155,13 @@ obj/
 *.db
 *.sqlite
 *.sqlite3
+
+# Security risk - session tokens
+cookies.txt
+
+# Literal dollar-sign filenames (setup script artifacts)
+\$service_file
+\$SECURITY_SUITE_HOME/
 
 # Certificate files
 *.p12

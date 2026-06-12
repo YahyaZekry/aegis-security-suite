@@ -548,7 +548,7 @@ class IntegrationTester:
             processes = result.stdout
             
             # Check for dashboard process
-            if 'app-optimized.py' in processes:
+            if 'app.py' in processes:
                 self.log_test("service_integration", "dashboard_process", "PASS", "Dashboard process running")
             else:
                 self.log_test("service_integration", "dashboard_process", "FAIL", "Dashboard process not found")
