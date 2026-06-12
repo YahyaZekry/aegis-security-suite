@@ -1,6 +1,6 @@
-# Garuda Security Suite Web Dashboard
+# Aegis Security Suite Web Dashboard
 
-A comprehensive web-based interface for monitoring and managing the Garuda Security Suite. This dashboard provides real-time security monitoring, behavioral analysis visualization, threat intelligence management, and incident response capabilities.
+A comprehensive web-based interface for monitoring and managing the Aegis Security Suite. This dashboard provides real-time security monitoring, behavioral analysis visualization, threat intelligence management, and incident response capabilities.
 
 ## Features
 
@@ -38,7 +38,7 @@ A comprehensive web-based interface for monitoring and managing the Garuda Secur
 
 ### Prerequisites
 - Python 3.8 or higher
-- Garuda Security Suite installed
+- Aegis Security Suite installed
 - System privileges for security operations
 
 ### Quick Start
@@ -204,7 +204,7 @@ The dashboard provides RESTful API endpoints for integration:
 ### Logs
 
 - **Application Log**: `$SECURITY_SUITE_HOME/logs/web-dashboard.log`
-- **Startup Log**: `/tmp/garuda-dashboard-startup.log`
+- **Startup Log**: `/tmp/aegis-dashboard-startup.log`
 - **Security Suite Logs**: `$SECURITY_SUITE_HOME/logs/`
 
 ### Debug Mode
@@ -272,7 +272,7 @@ src/dashboard/
 
 ## License
 
-This project is part of the Garuda Security Suite and follows the same licensing terms.
+This project is part of the Aegis Security Suite and follows the same licensing terms.
 
 ## Version History
 
@@ -285,4 +285,4 @@ This project is part of the Garuda Security Suite and follows the same licensing
 
 ---
 
-**Note**: This dashboard is designed to work with the Garuda Security Suite. Ensure the security suite is properly installed and configured before using the dashboard.
+**Note**: This dashboard is designed to work with the Aegis Security Suite. Ensure the security suite is properly installed and configured before using the dashboard.

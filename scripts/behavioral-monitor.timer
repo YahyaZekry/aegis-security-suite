@@ -1,6 +1,6 @@
 [Unit]
-Description=Timer for Garuda Security Suite Behavioral Monitor
-Documentation=https://github.com/garuda-security-suite/behavioral-analysis
+Description=Timer for Aegis Security Suite Behavioral Monitor
+Documentation=https://github.com/aegis-security-suite/behavioral-analysis
 Requires=behavioral-monitor.service
 
 [Timer]

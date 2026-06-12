@@ -1,5 +1,5 @@
 #!/bin/bash
-# Performance Testing Script for Optimized Garuda Security Suite
+# Performance Testing Script for Optimized Aegis Security Suite
 # Tests memory usage, performance, and resource limits
 
 source "$(dirname "$0")/common-functions.sh"
@@ -30,7 +30,7 @@ init_performance_test() {
     
     # Initialize test log
     {
-        echo "Garuda Security Suite Performance Test"
+        echo "Aegis Security Suite Performance Test"
         echo "=================================="
         echo "Test Started: $(date)"
         echo "Test Duration: ${TEST_DURATION}s"
@@ -449,7 +449,7 @@ generate_performance_report() {
     local report_file="$SECURITY_SUITE_HOME/logs/performance-report-$(date +%Y%m%d_%H%M%S).txt"
     
     {
-        echo "Garuda Security Suite Performance Report"
+        echo "Aegis Security Suite Performance Report"
         echo "===================================="
         echo "Report Generated: $(date)"
         echo "Test Duration: ${TEST_DURATION}s"

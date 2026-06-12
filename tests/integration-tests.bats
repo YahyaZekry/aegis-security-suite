@@ -179,7 +179,7 @@ NOTIFICATIONS_ENABLED=false
 EOF
     
     # Create mock setup script with configuration validation
-    cat > "$TEST_DIR/setup-security-suite.sh" << 'EOF'
+    cat > "$TEST_DIR/setup-aegis.sh" << 'EOF'
 #!/bin/bash
 # Mock Setup Script with Configuration Validation
 
@@ -198,10 +198,10 @@ echo "Setup completed successfully"
 exit 0
 EOF
     
-    chmod +x "$TEST_DIR/setup-security-suite.sh"
+    chmod +x "$TEST_DIR/setup-aegis.sh"
     
     # Run setup with invalid configuration
-    run "$TEST_DIR/setup-security-suite.sh"
+    run "$TEST_DIR/setup-aegis.sh"
     
     # Should fail configuration validation
     [ "$status" -eq 1 ]

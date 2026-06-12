@@ -1,5 +1,5 @@
 #!/bin/bash
-# Installation Script for Optimized Garuda Security Suite Components
+# Installation Script for Optimized Aegis Security Suite Components
 # Installs optimized versions with memory management and performance improvements
 
 source "$(dirname "$0")/common-functions.sh"
@@ -82,8 +82,8 @@ install_optimized_behavioral_monitoring() {
         # Create optimized service file with dynamic user detection
         cat > "$SCRIPT_DIR/behavioral-monitor-optimized.service" << EOF
 [Unit]
-Description=Optimized Garuda Behavioral Monitoring Service
-Documentation=https://github.com/garuda-security-suite/behavioral-monitor
+Description=Optimized Aegis Behavioral Monitoring Service
+Documentation=https://github.com/aegis-security-suite/behavioral-monitor
 After=network.target
 Wants=network.target
 
@@ -159,13 +159,13 @@ EOF
     fi
     
     # Create optimized systemd service
-    if [ -f "$SCRIPT_DIR/../web-dashboard/garuda-dashboard.service" ]; then
-        cp "$SCRIPT_DIR/../web-dashboard/garuda-dashboard.service" "$BACKUP_DIR/garuda-dashboard.service.backup"
+    if [ -f "$SCRIPT_DIR/../web-dashboard/aegis-dashboard.service" ]; then
+        cp "$SCRIPT_DIR/../web-dashboard/aegis-dashboard.service" "$BACKUP_DIR/aegis-dashboard.service.backup"
         
-        cat > "$SCRIPT_DIR/../web-dashboard/garuda-dashboard-optimized.service" << EOF
+        cat > "$SCRIPT_DIR/../web-dashboard/aegis-dashboard-optimized.service" << EOF
 [Unit]
-Description=Optimized Garuda Security Suite Dashboard
-Documentation=https://github.com/garuda-security-suite/dashboard
+Description=Optimized Aegis Security Suite Dashboard
+Documentation=https://github.com/aegis-security-suite/dashboard
 After=network.target
 Wants=network.target
 
@@ -326,11 +326,11 @@ create_optimization_scripts() {
 SCRIPT_DIR="$(dirname "$0")"
 SECURITY_SUITE_HOME="$(dirname "$SCRIPT_DIR")"
 
-echo "Enabling optimized Garuda Security Suite components..."
+echo "Enabling optimized Aegis Security Suite components..."
 
 # Stop existing services
-systemctl --user stop garuda-behavioral-monitor 2>/dev/null || true
-systemctl --user stop garuda-dashboard 2>/dev/null || true
+systemctl --user stop aegis-behavioral-monitor 2>/dev/null || true
+systemctl --user stop aegis-dashboard 2>/dev/null || true
 
 # Start optimized services
 systemctl --user daemon-reload
@@ -349,7 +349,7 @@ EOF
 SCRIPT_DIR="$(dirname "$0")"
 SECURITY_SUITE_HOME="$(dirname "$SCRIPT_DIR")"
 
-echo "Disabling optimized Garuda Security Suite components..."
+echo "Disabling optimized Aegis Security Suite components..."
 
 # Stop optimized services
 systemctl --user stop memory-monitor.service 2>/dev/null || true
@@ -373,8 +373,8 @@ fi
 
 # Restart original services
 systemctl --user daemon-reload
-systemctl --user start garuda-behavioral-monitor 2>/dev/null || true
-systemctl --user start garuda-dashboard 2>/dev/null || true
+systemctl --user start aegis-behavioral-monitor 2>/dev/null || true
+systemctl --user start aegis-dashboard 2>/dev/null || true
 
 echo "Optimized components disabled successfully"
 echo "Original components restored"
@@ -439,7 +439,7 @@ verify_installation() {
 
 # Main installation function
 main() {
-    log_info "Starting installation of optimized Garuda Security Suite components..."
+    log_info "Starting installation of optimized Aegis Security Suite components..."
     log_info "Installation log: $INSTALL_LOG"
     log_info "Backup directory: $BACKUP_DIR"
     

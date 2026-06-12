@@ -1,10 +1,10 @@
-# Garuda Security Suite
+# Aegis Security Suite
 
 A comprehensive Linux security monitoring and incident response system designed for enterprise environments.
 
 ## Overview
 
-Garuda Security Suite provides real-time monitoring, threat detection, behavioral analysis, and incident response capabilities for Linux systems. It combines multiple security tools into a unified platform with both CLI and web-based interfaces.
+Aegis Security Suite provides real-time monitoring, threat detection, behavioral analysis, and incident response capabilities for Linux systems. It combines multiple security tools into a unified platform with both CLI and web-based interfaces.
 
 ## Features
 
@@ -18,11 +18,10 @@ Garuda Security Suite provides real-time monitoring, threat detection, behaviora
 ## Project Structure
 
 ```
-garuda-security-suite/
+aegis-security-suite/
 ├── README.md                    # This file
-├── setup-security-suite.sh      # Main installation script
-├── uninstall-security-suite.sh  # Uninstallation script
-├── test-suite-comprehensive.sh  # Comprehensive test suite
+├── setup-aegis.sh                # Main installation script
+├── uninstall-aegis.sh            # Uninstallation script
 │
 ├── scripts/                     # Core security scripts
 │   ├── behavioral-analysis.sh    # Behavioral analysis engine
@@ -63,10 +62,13 @@ garuda-security-suite/
 │   └── TROUBLESHOOTING.md       # Troubleshooting guide
 │
 ├── tests/                       # Test framework
-│   ├── test-suite.bats          # Main test suite
+│   ├── test-suite.bats           # Main test suite
 │   ├── security-tests.bats       # Security-specific tests
-│   ├── integration-tests.bats   # Integration tests
-│   └── performance-tests.bats   # Performance tests
+│   ├── integration-tests.bats    # Integration tests
+│   ├── performance-tests.bats    # Performance tests
+│   ├── test-suite-comprehensive.sh  # Comprehensive test suite
+│   ├── comprehensive_integration_test.py  # Integration test
+│   └── integration_test_suite.py       # Integration test suite
 │
 ├── component-tests/             # Component-specific tests
 ├── integration-tests/           # Integration test scripts
@@ -86,17 +88,17 @@ garuda-security-suite/
 
 ### Installation
 
-The Garuda Security Suite is now **user-agnostic** and can be installed by any user without modifications.
+The Aegis Security Suite is now **user-agnostic** and can be installed by any user without modifications.
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-org/garuda-security-suite.git
-   cd garuda-security-suite
+   git clone https://github.com/your-org/aegis-security-suite.git
+   cd aegis-security-suite
    ```
 
 2. Run the installation script:
    ```bash
-   ./setup-security-suite.sh
+   ./setup-aegis.sh
    ```
    
    **Note**: The script automatically detects the current user and configures all paths accordingly. No hardcoded user paths are used.
@@ -110,7 +112,7 @@ The Garuda Security Suite is now **user-agnostic** and can be installed by any u
 #### User-Agnostic Features
 
 - **Dynamic User Detection**: Automatically detects the current user running the installation
-- **Flexible Path Resolution**: Supports multiple installation locations (`~/security-suite`, `/opt/garuda-security-suite`, etc.)
+- **Flexible Path Resolution**: Supports multiple installation locations (`~/security-suite`, `/opt/aegis-security-suite`, etc.)
 - **Service Template Processing**: All systemd services are dynamically configured for the detected user
 - **No Hardcoded Paths**: All references use dynamic variables instead of hardcoded user names
 
@@ -119,7 +121,7 @@ The Garuda Security Suite is now **user-agnostic** and can be installed by any u
 - **CLI Interface**: Use scripts in the `scripts/` directory
 - **Web Dashboard**: Access at `http://localhost:5000`
 - **Configuration**: Edit `configs/security-config.conf`
-- **Service Management**: Use `./scripts/start-security-suite.sh` to manage all services
+- **Service Management**: Use `./scripts/start-aegis.sh` to manage all services
 
 #### User Environment Variables
 
@@ -145,7 +147,7 @@ The installation automatically sets up the following environment variables:
 
 Run the comprehensive test suite:
 ```bash
-./test-suite-comprehensive.sh
+./tests/test-suite-comprehensive.sh
 ```
 
 Or run specific test categories:
@@ -154,6 +156,8 @@ Or run specific test categories:
 ./component-tests/test-*.sh
 
 # Integration tests
+./tests/test-suite-comprehensive.sh
+./tests/integration_test_suite.py
 ./integration-tests/test-*.sh
 
 # Security tests
@@ -195,9 +199,9 @@ Main configuration is handled through `configs/security-config.conf`. Key sectio
 ## Support
 
 For issues, questions, or contributions:
-- GitHub Issues: [Create an issue](https://github.com/your-org/garuda-security-suite/issues)
+- GitHub Issues: [Create an issue](https://github.com/your-org/aegis-security-suite/issues)
 - Documentation: [docs/](docs/)
-- Community: [Discussions](https://github.com/your-org/garuda-security-suite/discussions)
+- Community: [Discussions](https://github.com/your-org/aegis-security-suite/discussions)
 
 ## License
 

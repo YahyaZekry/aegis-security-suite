@@ -1,5 +1,5 @@
 """
-Behavioral Analysis API Module for Garuda Security Suite Dashboard
+Behavioral Analysis API Module for Aegis Security Suite Dashboard
 Provides behavioral monitoring, anomaly detection, and analysis endpoints
 """
 
@@ -21,7 +21,7 @@ from auth import require_auth, require_role
 behavioral_bp = Blueprint('behavioral', __name__, url_prefix='/api/behavioral')
 
 # Database paths
-BEHAVIORAL_DB_PATH = os.path.join(os.environ.get('SECURITY_SUITE_HOME', '/opt/garuda-security-suite'),
+BEHAVIORAL_DB_PATH = os.path.join(os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite'),
                                   'configs', 'behavioral_analysis', 'behavioral_data.db')
 
 def get_behavioral_data(time_range='24h'):
@@ -362,7 +362,7 @@ def create_baseline():
             }), 400
         
         # Run behavioral analysis script to create baseline
-        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/garuda-security-suite')
+        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
         behavioral_script = os.path.join(security_home, 'scripts', 'behavioral-analysis.sh')
         
         if not os.path.exists(behavioral_script):
@@ -432,7 +432,7 @@ def create_baseline():
 def start_monitoring():
     """Start behavioral monitoring"""
     try:
-        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/garuda-security-suite')
+        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
         monitor_script = os.path.join(security_home, 'scripts', 'behavioral-monitor.sh')
         
         if not os.path.exists(monitor_script):
@@ -490,7 +490,7 @@ def start_monitoring():
 def stop_monitoring():
     """Stop behavioral monitoring"""
     try:
-        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/garuda-security-suite')
+        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
         monitor_script = os.path.join(security_home, 'scripts', 'behavioral-monitor.sh')
         
         if not os.path.exists(monitor_script):

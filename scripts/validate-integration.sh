@@ -1,5 +1,5 @@
 #!/bin/bash
-# Garuda Security Suite Integration Validation Script
+# Aegis Security Suite Integration Validation Script
 # Validates that all components are working together properly
 
 set -euo pipefail
@@ -270,7 +270,7 @@ test_logging() {
     
     local log_dirs=(
         "$SECURITY_SUITE_HOME/logs"
-        "/var/log/garuda-security-suite"
+        "/var/log/aegis-security-suite"
     )
     
     local log_dirs_passed=0
@@ -351,7 +351,7 @@ generate_report() {
     mkdir -p "$(dirname "$report_file")"
     
     cat > "$report_file" << EOF
-Garuda Security Suite Integration Validation Report
+Aegis Security Suite Integration Validation Report
 Generated: $(date)
 ===============================================
 
@@ -363,7 +363,7 @@ Success Rate: $(( VALIDATION_PASSED * 100 / (VALIDATION_PASSED + VALIDATION_FAIL
 
 COMPONENT STATUS:
 ----------------
-Dashboard Service: $(systemctl is-active --quiet garuda-dashboard 2>/dev/null && echo "Running" || echo "Stopped")
+Dashboard Service: $(systemctl is-active --quiet aegis-dashboard 2>/dev/null && echo "Running" || echo "Stopped")
 Dashboard Port: $(netstat -tlnp 2>/dev/null | grep ":$DASHBOARD_PORT " && echo "Listening" || echo "Not Listening")
 Authentication: $(curl -s -w "%{http_code}" "http://localhost:$DASHBOARD_PORT/login" -X POST -d "username=admin&password=admin123" 2>/dev/null | grep -E "302|303" >/dev/null && echo "Working" || echo "Failed")
 API Endpoints: $(curl -s "http://localhost:$DASHBOARD_PORT/api/system/status" -w "%{http_code}" 2>/dev/null | grep -E "200|401" >/dev/null && echo "Working" || echo "Failed")
@@ -371,15 +371,15 @@ Databases: $(sqlite3 "$SECURITY_SUITE_HOME/configs/web-dashboard/auth.db" "SELEC
 
 RECOMMENDATIONS:
 ----------------
-1. Ensure all services are running: systemctl start garuda-dashboard
-2. Check logs for issues: journalctl -u garuda-dashboard -f
+1. Ensure all services are running: systemctl start aegis-dashboard
+2. Check logs for issues: journalctl -u aegis-dashboard -f
 3. Verify configuration: cat $SECURITY_SUITE_HOME/configs/security-config.conf
 4. Test dashboard manually: curl http://localhost:$DASHBOARD_PORT
 5. Monitor system resources: htop, iotop
 
 NEXT STEPS:
 -----------
-1. Run comprehensive test suite: ./test-suite-comprehensive.sh
+1. Run comprehensive test suite: ./tests/test-suite-comprehensive.sh
 2. Verify all components are operational
 3. Check real-time monitoring functionality
 4. Validate user authentication and permissions
@@ -391,7 +391,7 @@ EOF
 
 # Main validation function
 run_validation() {
-    print_header "Garuda Security Suite Integration Validation"
+    print_header "Aegis Security Suite Integration Validation"
     
     # Check if security suite is installed
     if [ ! -d "$SECURITY_SUITE_HOME" ]; then
@@ -406,10 +406,10 @@ run_validation() {
     test_logging
     
     # Check dashboard service
-    check_service "garuda-dashboard" "Dashboard"
+    check_service "aegis-dashboard" "Dashboard"
     check_port "$DASHBOARD_PORT" "Dashboard"
     
-    if check_service "garuda-dashboard" "Dashboard"; then
+    if check_service "aegis-dashboard" "Dashboard"; then
         check_dashboard
         test_dashboard_auth
         test_api_endpoints
@@ -431,7 +431,7 @@ run_validation() {
     
     if [ $VALIDATION_FAILED -eq 0 ]; then
         echo -e "${GREEN}🎉 ALL VALIDATIONS PASSED!${NC}"
-        echo -e "${GREEN}Garuda Security Suite is fully operational${NC}"
+        echo -e "${GREEN}Aegis Security Suite is fully operational${NC}"
         return 0
     else
         echo -e "${YELLOW}⚠️  $VALIDATION_FAILED validation(s) failed${NC}"
@@ -442,7 +442,7 @@ run_validation() {
 
 # Function to show help
 show_help() {
-    echo "Garuda Security Suite Integration Validation Script"
+    echo "Aegis Security Suite Integration Validation Script"
     echo ""
     echo "Usage: $0 [OPTIONS]"
     echo ""

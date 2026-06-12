@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# Comprehensive Unit Test Suite for Garuda Security Suite
+# Comprehensive Unit Test Suite for Aegis Security Suite
 # Following Phase 1 implementation plans (lines 1621-1731)
 
 # Load test helpers

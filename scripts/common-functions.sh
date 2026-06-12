@@ -535,8 +535,8 @@ detect_security_suite_home() {
     # Check common installation locations
     local possible_paths=(
         "$user_home/security-suite"
-        "/opt/garuda-security-suite"
-        "/usr/local/garuda-security-suite"
+        "/opt/aegis-security-suite"
+        "/usr/local/aegis-security-suite"
         "$(dirname "$(dirname "$(readlink -f "$0")")")"  # Script directory parent
     )
     
@@ -582,8 +582,8 @@ create_user_agnostic_service() {
     # Create user-agnostic service file
     sed -e "s|User=frieso|User=$service_user|g" \
         -e "s|/home/frieso|$CURRENT_HOME|g" \
-        -e "s|/opt/garuda-security-suite|$SECURITY_SUITE_HOME|g" \
-        -e "s|/mnt/AirFryer/Projects/Linux/garuda-security-suite|$SECURITY_SUITE_HOME|g" \
+        -e "s|/opt/aegis-security-suite|$SECURITY_SUITE_HOME|g" \
+        -e "s|/mnt/AirFryer/Projects/Linux/aegis-security-suite|$SECURITY_SUITE_HOME|g" \
         "$template_file" > "$output_file"
     
     log_success "Created user-agnostic service: $output_file"

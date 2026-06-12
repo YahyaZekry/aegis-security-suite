@@ -1,4 +1,4 @@
-# 🚀 Garuda Security Suite - Quick Start Guide
+# 🚀 Aegis Security Suite - Quick Start Guide
 
 ### _"Get your enterprise-grade security automation running in minutes"_
 
@@ -28,7 +28,7 @@
 - **Network**: Internet connection for updates and threat intelligence
 
 #### Software Requirements
-- **Operating System**: Garuda Linux (Arch-based)
+- **Operating System**: Aegis Linux (Arch-based)
 - **Shell**: Bash 4.0+
 - **Systemd**: User systemd support enabled
 - **Python**: Python 3.8+ installed
@@ -40,7 +40,7 @@ Run this command to verify all prerequisites:
 
 ```bash
 # Quick prerequisites check
-curl -fsSL https://raw.githubusercontent.com/YahyaZekry/garuda-security-suite/main/src/core/scripts/check-prerequisites.sh | bash
+curl -fsSL https://raw.githubusercontent.com/YahyaZekry/aegis-security-suite/main/src/core/scripts/check-prerequisites.sh | bash
 ```
 
 Or check manually:
@@ -116,14 +116,14 @@ For most users, use the quick installation with default settings:
 
 ```bash
 # Clone the repository
-git clone https://github.com/YahyaZekry/garuda-security-suite.git
-cd garuda-security-suite
+git clone https://github.com/YahyaZekry/aegis-security-suite.git
+cd aegis-security-suite
 
 # Make installation script executable
-chmod +x setup-security-suite.sh
+chmod +x setup-aegis.sh
 
 # Run quick installation with default settings
-./setup-security-suite.sh
+./setup-aegis.sh
 
 # Follow the prompts (recommended: choose default options)
 ```
@@ -134,14 +134,14 @@ For advanced users who want custom configuration:
 
 ```bash
 # Clone the repository
-git clone https://github.com/YahyaZekry/garuda-security-suite.git
-cd garuda-security-suite
+git clone https://github.com/YahyaZekry/aegis-security-suite.git
+cd aegis-security-suite
 
 # Make installation script executable
-chmod +x setup-security-suite.sh
+chmod +x setup-aegis.sh
 
 # Run custom installation
-./setup-security-suite.sh
+./setup-aegis.sh
 
 # Choose custom configuration when prompted:
 # - Installation directory (default: ~/security-suite)
@@ -166,7 +166,7 @@ ls -la
 cat configs/security-config.conf
 
 # Check service status
-./scripts/start-security-suite.sh status
+./scripts/start-aegis.sh status
 ```
 
 Expected output should show:
@@ -193,10 +193,10 @@ The easiest way to start all security services:
 cd ~/security-suite
 
 # Start all services
-./scripts/start-security-suite.sh start all
+./scripts/start-aegis.sh start all
 
 # Check service status
-./scripts/start-security-suite.sh status
+./scripts/start-aegis.sh status
 ```
 
 Expected output should show:
@@ -214,15 +214,15 @@ Start individual services as needed:
 
 ```bash
 # Start web dashboard only
-./scripts/start-security-suite.sh start web-dashboard
+./scripts/start-aegis.sh start web-dashboard
 
 # Start behavioral analysis only
-./scripts/start-security-suite.sh start behavioral-monitor
+./scripts/start-aegis.sh start behavioral-monitor
 
 # Start scan services only
-./scripts/start-security-suite.sh start daily-scan
-./scripts/start-security-suite.sh start weekly-scan
-./scripts/start-security-suite.sh start monthly-scan
+./scripts/start-aegis.sh start daily-scan
+./scripts/start-aegis.sh start weekly-scan
+./scripts/start-aegis.sh start monthly-scan
 ```
 
 ### Service Status Verification
@@ -231,10 +231,10 @@ Check the status of all services:
 
 ```bash
 # Check all services
-./scripts/start-security-suite.sh status
+./scripts/start-aegis.sh status
 
 # Check specific service
-./scripts/start-security-suite.sh status web-dashboard
+./scripts/start-aegis.sh status web-dashboard
 
 # Check systemd timers
 systemctl --user list-timers | grep security
@@ -244,16 +244,16 @@ systemctl --user list-timers | grep security
 
 ```bash
 # Restart all services
-./scripts/start-security-suite.sh restart all
+./scripts/start-aegis.sh restart all
 
 # Stop all services
-./scripts/start-security-suite.sh stop all
+./scripts/start-aegis.sh stop all
 
 # Restart specific service
-./scripts/start-security-suite.sh restart web-dashboard
+./scripts/start-aegis.sh restart web-dashboard
 
 # Get help with service management
-./scripts/start-security-suite.sh help
+./scripts/start-aegis.sh help
 ```
 
 ---
@@ -277,7 +277,7 @@ http://[SERVER_IP]:8080
 Use the default credentials for first-time access:
 
 - **Username**: `admin`
-- **Password**: `garuda123`
+- **Password**: `aegis123`
 
 ⚠️ **Security Warning**: Change the default password immediately after first login!
 
@@ -288,7 +288,7 @@ Use the default credentials for first-time access:
 # 1. Login to dashboard
 # 2. Click on username in top-right corner
 # 3. Select "Change Password"
-# 4. Enter current password: garuda123
+# 4. Enter current password: aegis123
 # 5. Enter new password (minimum 8 characters)
 # 6. Confirm new password
 
@@ -345,7 +345,7 @@ Verify your installation with the comprehensive test suite:
 cd ~/security-suite
 
 # Run comprehensive test suite
-$SECURITY_SUITE_HOME/test-suite-comprehensive.sh
+$SECURITY_SUITE_HOME/tests/test-suite-comprehensive.sh
 
 # Check test results
 cat $HOME/security-suite/test-results/test-report-*.txt
@@ -353,7 +353,7 @@ cat $HOME/security-suite/test-results/test-report-*.txt
 
 Expected output should show:
 ```
-=== GARUDA SECURITY SUITE COMPREHENSIVE TEST SUITE ===
+=== AEGIS SECURITY SUITE COMPREHENSIVE TEST SUITE ===
 Test Date: 2025-11-01 07:30:00
 Test Environment: Production
 
@@ -383,7 +383,7 @@ cd $SECURITY_SUITE_HOME/scripts
 ./incident-response.sh response "test_incident" "Test incident details" "low"
 
 # Test dashboard API
-curl -u admin:garuda123 http://localhost:8080/api/system/status
+curl -u admin:aegis123 http://localhost:8080/api/system/status
 ```
 
 ### Dashboard Functionality Testing
@@ -455,7 +455,7 @@ The main dashboard provides a comprehensive overview of your security status:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Garuda Security Dashboard                │
+│                    Aegis Security Dashboard                │
 ├─────────────────────────────────────────────────────────────┤
 │  Header: Logo | Navigation | User Menu | Notifications      │
 ├─────────────────────────────────────────────────────────────┤
@@ -538,7 +538,7 @@ cd $SECURITY_SUITE_HOME
 ./scripts/install-behavioral-monitor-service.sh
 
 # Solution 2: Start behavioral monitor manually
-./scripts/start-security-suite.sh start behavioral-monitor
+./scripts/start-aegis.sh start behavioral-monitor
 
 # Solution 3: Check if service files exist
 ls -la scripts/behavioral-monitor.*
@@ -565,10 +565,10 @@ cd $HOME/security-suite/web-dashboard
 
 # Solution 1: Use absolute paths
 export SECURITY_SUITE_HOME="$(pwd)"
-./scripts/start-security-suite.sh start all
+./scripts/start-aegis.sh start all
 
 # Solution 2: Check script permissions
-chmod +x scripts/start-security-suite.sh
+chmod +x scripts/start-aegis.sh
 chmod +x scripts/*.sh
 
 # Solution 3: Verify directory structure
@@ -581,13 +581,13 @@ ls -la web-dashboard/
 #### Problem: Services Won't Start
 ```bash
 # Check service status
-./scripts/start-security-suite.sh status
+./scripts/start-aegis.sh status
 
 # Check service logs
 journalctl --user -u security-daily-scan.service --no-pager
 
 # Restart services
-./scripts/start-security-suite.sh restart all
+./scripts/start-aegis.sh restart all
 
 # Check for missing systemd timers
 systemctl --user list-unit-files | grep security
@@ -712,17 +712,17 @@ python3 -c "
 from auth import hash_password, update_password
 import sqlite3
 
-hashed_password = hash_password('garuda123')
+hashed_password = hash_password('aegis123')
 conn = sqlite3.connect('auth.db')
 cursor = conn.cursor()
 cursor.execute('UPDATE users SET password = ? WHERE username = ?', (hashed_password, 'admin'))
 conn.commit()
 conn.close()
 
-print('Password reset to garuda123')
+print('Password reset to aegis123')
 "
 
-# Try logging in with: admin / garuda123
+# Try logging in with: admin / aegis123
 ```
 
 #### Problem: Dashboard Shows Errors
@@ -748,33 +748,33 @@ sqlite3 ~/security-suite/configs/behavioral_analysis/behavioral_data.db "SELECT 
 # Start all services (with workarounds)
 cd $SECURITY_SUITE_HOME
 export SECURITY_SUITE_HOME="$(pwd)"
-./scripts/start-security-suite.sh start all
+./scripts/start-aegis.sh start all
 
 # Alternative: Start services individually
-./scripts/start-security-suite.sh start web-dashboard
-./scripts/start-security-suite.sh start behavioral-monitor
+./scripts/start-aegis.sh start web-dashboard
+./scripts/start-aegis.sh start behavioral-monitor
 
 # Install behavioral monitor service if needed
 ./scripts/install-behavioral-monitor-service.sh
 
 # Check service status
-./scripts/start-security-suite.sh status
+./scripts/start-aegis.sh status
 
 # Access dashboard
 http://localhost:8080
 
 # Default login credentials
 Username: admin
-Password: garuda123
+Password: aegis123
 
 # Run comprehensive tests
-$SECURITY_SUITE_HOME/test-suite-comprehensive.sh
+$SECURITY_SUITE_HOME/tests/test-suite-comprehensive.sh
 
 # Restart all services
-$SECURITY_SUITE_HOME/scripts/start-security-suite.sh restart all
+$SECURITY_SUITE_HOME/scripts/start-aegis.sh restart all
 
 # Stop all services
-$SECURITY_SUITE_HOME/scripts/start-security-suite.sh stop all
+$SECURITY_SUITE_HOME/scripts/start-aegis.sh stop all
 ```
 
 ### Dashboard URLs
@@ -817,23 +817,23 @@ $SECURITY_SUITE_HOME/scripts/start-security-suite.sh stop all
 ```bash
 # Start individual services (with workarounds)
 export SECURITY_SUITE_HOME="$HOME/security-suite"
-$SECURITY_SUITE_HOME/scripts/start-security-suite.sh start web-dashboard
-$SECURITY_SUITE_HOME/scripts/start-security-suite.sh start behavioral-monitor
-$SECURITY_SUITE_HOME/scripts/start-security-suite.sh start daily-scan
+$SECURITY_SUITE_HOME/scripts/start-aegis.sh start web-dashboard
+$SECURITY_SUITE_HOME/scripts/start-aegis.sh start behavioral-monitor
+$SECURITY_SUITE_HOME/scripts/start-aegis.sh start daily-scan
 
 # Install behavioral monitor timer if missing
 $SECURITY_SUITE_HOME/scripts/install-behavioral-monitor-service.sh
 
 # Restart individual services
-$SECURITY_SUITE_HOME/scripts/start-security-suite.sh restart web-dashboard
-$SECURITY_SUITE_HOME/scripts/start-security-suite.sh restart behavioral-monitor
+$SECURITY_SUITE_HOME/scripts/start-aegis.sh restart web-dashboard
+$SECURITY_SUITE_HOME/scripts/start-aegis.sh restart behavioral-monitor
 
 # Stop individual services
-$SECURITY_SUITE_HOME/scripts/start-security-suite.sh stop web-dashboard
-$SECURITY_SUITE_HOME/scripts/start-security-suite.sh stop behavioral-monitor
+$SECURITY_SUITE_HOME/scripts/start-aegis.sh stop web-dashboard
+$SECURITY_SUITE_HOME/scripts/start-aegis.sh stop behavioral-monitor
 
 # Get help
-$SECURITY_SUITE_HOME/scripts/start-security-suite.sh help
+$SECURITY_SUITE_HOME/scripts/start-aegis.sh help
 
 # Manual service startup (fallback)
 cd $HOME/security-suite/web-dashboard && ./start-dashboard.sh start
@@ -844,10 +844,10 @@ cd $HOME/security-suite/scripts && ./behavioral-monitor.sh &
 
 ```bash
 # Emergency restart
-$SECURITY_SUITE_HOME/scripts/start-security-suite.sh restart all
+$SECURITY_SUITE_HOME/scripts/start-aegis.sh restart all
 
 # Emergency status check
-$SECURITY_SUITE_HOME/scripts/start-security-suite.sh status
+$SECURITY_SUITE_HOME/scripts/start-aegis.sh status
 
 # Emergency log check
 tail -n 50 $HOME/security-suite/logs/manual/security_scan_*.log
@@ -892,9 +892,9 @@ sqlite3 $HOME/security-suite/configs/incident_response/incidents.db "PRAGMA inte
 
 ### Community Support
 
-- **[GitHub Issues](https://github.com/YahyaZekry/garuda-security-suite/issues)**: Report bugs and request features
-- **[GitHub Discussions](https://github.com/YahyaZekry/garuda-security-suite/discussions)**: Community discussions and support
-- **[Wiki](https://github.com/YahyaZekry/garuda-security-suite/wiki)**: Community-maintained documentation
+- **[GitHub Issues](https://github.com/YahyaZekry/aegis-security-suite/issues)**: Report bugs and request features
+- **[GitHub Discussions](https://github.com/YahyaZekry/aegis-security-suite/discussions)**: Community discussions and support
+- **[Wiki](https://github.com/YahyaZekry/aegis-security-suite/wiki)**: Community-maintained documentation
 
 ### Reporting Issues
 
@@ -903,7 +903,7 @@ When reporting issues, include:
 1. **System Information**
    ```bash
    uname -a
-   pacman -Q garuda-security-suite
+   pacman -Q aegis-security-suite
    ```
 
 2. **Error Messages**
@@ -920,7 +920,7 @@ When reporting issues, include:
 
 ## 🎉 Quick Start Complete!
 
-Congratulations! You now have a fully functional Garuda Security Suite installation. Your system is protected with:
+Congratulations! You now have a fully functional Aegis Security Suite installation. Your system is protected with:
 
 - **🛡️ Real-time Security Monitoring**: Continuous protection against threats
 - **🧠 Behavioral Analysis**: Advanced anomaly detection and threat scoring
@@ -943,7 +943,7 @@ Congratulations! You now have a fully functional Garuda Security Suite installat
 - **Review Logs**: Periodically review security logs for unusual activity
 - **Test Regularly**: Run regular tests to ensure continued functionality
 
-**Your Garuda Security Suite is now protecting your system! 🛡️**
+**Your Aegis Security Suite is now protecting your system! 🛡️**
 
 ---
 

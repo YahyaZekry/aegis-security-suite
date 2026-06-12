@@ -1,6 +1,6 @@
 [Unit]
-Description=Garuda Security Suite Behavioral Monitor
-Documentation=https://github.com/garuda-security-suite/behavioral-analysis
+Description=Aegis Security Suite Behavioral Monitor
+Documentation=https://github.com/aegis-security-suite/behavioral-analysis
 After=network.target
 Wants=network.target
 
@@ -29,7 +29,7 @@ ReadWritePaths=/tmp
 # Logging
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=garuda-behavioral-monitor
+SyslogIdentifier=aegis-behavioral-monitor
 
 [Install]
 WantedBy=multi-user.target

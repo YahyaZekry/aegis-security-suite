@@ -1,5 +1,5 @@
 """
-Incident Management API Module for Garuda Security Suite Dashboard
+Incident Management API Module for Aegis Security Suite Dashboard
 Provides incident creation, tracking, and response endpoints
 """
 
@@ -22,7 +22,7 @@ from auth import require_auth, require_role
 incidents_bp = Blueprint('incidents', __name__, url_prefix='/api/incidents')
 
 # Database paths
-INCIDENT_DB_PATH = os.path.join(os.environ.get('SECURITY_SUITE_HOME', '/opt/garuda-security-suite'), 
+INCIDENT_DB_PATH = os.path.join(os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite'), 
                                 'configs', 'incident_response', 'incidents.db')
 
 def ensure_incident_db():
@@ -437,7 +437,7 @@ def get_incident_statistics():
 def trigger_incident_response(incident_id, incident_type, severity):
     """Trigger incident response script"""
     try:
-        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/garuda-security-suite')
+        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
         incident_script = os.path.join(security_home, 'scripts', 'incident-response.sh')
         
         if not os.path.exists(incident_script):
@@ -699,7 +699,7 @@ def collect_evidence(incident_id):
         if evidence_type not in valid_types:
             evidence_type = 'basic'
         
-        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/garuda-security-suite')
+        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
         incident_script = os.path.join(security_home, 'scripts', 'incident-response.sh')
         
         if not os.path.exists(incident_script):

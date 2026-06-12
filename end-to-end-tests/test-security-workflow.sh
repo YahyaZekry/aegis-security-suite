@@ -725,7 +725,7 @@ test_cleanup_workflow() {
     
     for dir in "${temp_dirs[@]}"; do
         if [ -d "$dir" ]; then
-            local temp_files=$(find "$dir" -name "*garuda*" -o -name "*security*" -o -name "*behavioral*" 2>/dev/null)
+            local temp_files=$(find "$dir" -name "*aegis*" -o -name "*security*" -o -name "*behavioral*" 2>/dev/null)
             if [ -n "$temp_files" ]; then
                 log_pass "Temporary files found for cleanup: $(echo "$temp_files" | wc -l)"
             else

@@ -4,7 +4,7 @@
 SCRIPT_DIR="$(dirname "$0")"
 SECURITY_SUITE_HOME="$(dirname "$SCRIPT_DIR")"
 
-echo "Disabling optimized Garuda Security Suite components..."
+echo "Disabling optimized Aegis Security Suite components..."
 
 # Stop optimized services
 systemctl --user stop memory-monitor.service 2>/dev/null || true
@@ -32,8 +32,8 @@ fi
 
 # Restart original services
 systemctl --user daemon-reload
-systemctl --user start garuda-behavioral-monitor 2>/dev/null || true
-systemctl --user start garuda-dashboard 2>/dev/null || true
+systemctl --user start aegis-behavioral-monitor 2>/dev/null || true
+systemctl --user start aegis-dashboard 2>/dev/null || true
 
 echo "Optimized components disabled successfully"
 echo "Original components restored"

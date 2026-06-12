@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Security Utilities Module for Garuda Security Suite Dashboard
+Security Utilities Module for Aegis Security Suite Dashboard
 Provides comprehensive security functions including input validation, rate limiting,
 API key management, and security logging
 """
@@ -21,7 +21,7 @@ import bleach
 from typing import Dict, List, Optional, Tuple, Any
 
 # Configure security logging
-security_logger = logging.getLogger('garuda_security')
+security_logger = logging.getLogger('aegis_security')
 security_logger.setLevel(logging.INFO)
 
 # Create file handler for security logs
@@ -263,7 +263,7 @@ class APIKeyManager:
     
     def generate_api_key(self, key_name: str, permissions: List[str], created_by: str, expires_in_days: int = 90) -> Dict:
         """Generate new API key with expiration"""
-        api_key = f"garuda_{secrets.token_urlsafe(32)}"
+        api_key = f"aegis_{secrets.token_urlsafe(32)}"
         expires_at = (datetime.now() + timedelta(days=expires_in_days)).isoformat()
         
         conn = sqlite3.connect(self.db_path)
@@ -291,7 +291,7 @@ class APIKeyManager:
     
     def validate_api_key(self, api_key: str, required_permission: str = None) -> Optional[Dict]:
         """Validate API key and check permissions"""
-        if not api_key or not api_key.startswith('garuda_'):
+        if not api_key or not api_key.startswith('aegis_'):
             return None
         
         conn = sqlite3.connect(self.db_path)
@@ -403,7 +403,7 @@ class APIKeyManager:
         permissions = json.loads(permissions_json)
         
         # Generate new API key
-        new_api_key = f"garuda_{secrets.token_urlsafe(32)}"
+        new_api_key = f"aegis_{secrets.token_urlsafe(32)}"
         
         # Calculate new expiration (extend from current expiration)
         if expires_at:
@@ -858,7 +858,7 @@ def generate_mfa_qr_code(secret, username):
         
         totp_uri = pyotp.totp.TOTP(secret).provisioning_uri(
             name=username,
-            issuer_name="Garuda Security Suite"
+            issuer_name="Aegis Security Suite"
         )
         
         qr = qrcode.QRCode(version=1, box_size=10, border=5)

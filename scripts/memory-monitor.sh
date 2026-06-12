@@ -124,7 +124,7 @@ emergency_memory_cleanup() {
     local behavioral_memory=$(get_process_memory_usage "behavioral-monitor")
     if [ "$(echo "$behavioral_memory > 200" | bc -l)" -eq 1 ]; then
         log_info "Restarting behavioral monitoring due to high memory usage"
-        systemctl --user restart garuda-behavioral-monitor 2>/dev/null || true
+        systemctl --user restart aegis-behavioral-monitor 2>/dev/null || true
     fi
     
     # Clean up old log files

@@ -9,7 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SECURITY_SUITE_HOME="${SECURITY_SUITE_HOME:-$(dirname "$SCRIPT_DIR")}"
 
 echo "=========================================="
-echo "Garuda Security Suite Database Migration"
+echo "Aegis Security Suite Database Migration"
 echo "=========================================="
 echo "Security Suite Home: $SECURITY_SUITE_HOME"
 echo "Timestamp: $(date)"
@@ -72,7 +72,7 @@ if [ "$MIGRATION_SUCCESS" = true ]; then
     echo "✓ All database migrations completed successfully!"
     echo ""
     echo "Next steps:"
-    echo "1. Restart the web dashboard: sudo systemctl restart garuda-dashboard"
+    echo "1. Restart the web dashboard: sudo systemctl restart aegis-dashboard"
     echo "2. Test API endpoints to verify functionality"
     echo "3. Check dashboard logs for any issues"
     exit 0

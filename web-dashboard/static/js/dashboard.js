@@ -1,5 +1,5 @@
 /**
- * Garuda Security Suite - Advanced Dashboard JavaScript
+ * Aegis Security Suite - Advanced Dashboard JavaScript
  * Modern futuristic dashboard with real-time updates and enhanced interactions
  */
 
@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function() {
  * Initialize dashboard components
  */
 function initializeDashboard() {
-    console.log('🚀 Initializing Garuda Security Dashboard...');
+    console.log('🚀 Initializing Aegis Security Dashboard...');
     
     // Update last updated timestamp
     updateLastUpdated();
@@ -123,7 +123,7 @@ function connectWebSocket() {
         });
         
         socket.on('connect', function() {
-            console.log('🔌 Connected to Garuda Security Server');
+            console.log('🔌 Connected to Aegis Security Server');
             showConnectionStatus('Connected', 'success');
             initializeConnectionHeartbeat();
             
@@ -132,7 +132,7 @@ function connectWebSocket() {
         });
         
         socket.on('disconnect', function(reason) {
-            console.log('🔌 Disconnected from Garuda Security Server:', reason);
+            console.log('🔌 Disconnected from Aegis Security Server:', reason);
             showConnectionStatus('Disconnected', 'danger');
             monitoringActive = false;
             handleReconnection();
@@ -581,7 +581,7 @@ function getCurrentPageData() {
         incidents: getIncidentsData(),
         threats: getThreatsData(),
         user: getCurrentUserInfo(),
-        export_format: 'garuda-dashboard-export'
+        export_format: 'aegis-dashboard-export'
     };
 }
 
@@ -590,7 +590,7 @@ function getCurrentPageData() {
  */
 function downloadJSON(data) {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    downloadFile(blob, `garuda_dashboard_${new Date().toISOString().split('T')[0]}.json`);
+    downloadFile(blob, `aegis_dashboard_${new Date().toISOString().split('T')[0]}.json`);
 }
 
 /**
@@ -616,7 +616,7 @@ function downloadCSV(data) {
     }
     
     const blob = new Blob([csv], { type: 'text/csv' });
-    downloadFile(blob, `garuda_dashboard_${new Date().toISOString().split('T')[0]}.csv`);
+    downloadFile(blob, `aegis_dashboard_${new Date().toISOString().split('T')[0]}.csv`);
 }
 
 /**
@@ -646,7 +646,7 @@ function downloadFile(blob, filename) {
  * Theme management
  */
 function loadTheme() {
-    const savedTheme = localStorage.getItem('garuda-theme') || 'dark';
+    const savedTheme = localStorage.getItem('aegis-theme') || 'dark';
     currentTheme = savedTheme;
     applyTheme(savedTheme);
 }
@@ -654,7 +654,7 @@ function loadTheme() {
 function toggleTheme() {
     currentTheme = currentTheme === 'light' ? 'dark' : 'light';
     applyTheme(currentTheme);
-    localStorage.setItem('garuda-theme', currentTheme);
+    localStorage.setItem('aegis-theme', currentTheme);
     
     // Animate theme transition
     document.body.style.transition = 'background-color 0.3s ease';
@@ -1498,4 +1498,4 @@ window.showKeyboardShortcuts = showKeyboardShortcuts;
 window.toggleMobileMenu = toggleMobileMenu;
 window.closeMobileMenu = closeMobileMenu;
 
-console.log('🎯 Garuda Security Dashboard JavaScript loaded successfully');
+console.log('🎯 Aegis Security Dashboard JavaScript loaded successfully');

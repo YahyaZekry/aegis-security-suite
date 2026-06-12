@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Configuration - Garuda Security Suite{% endblock %}
+{% block title %}Configuration - Aegis Security Suite{% endblock %}
 
 {% block page_title %}System Configuration{% endblock %}
 {% block page_subtitle %}Advanced security suite configuration and management{% endblock %}
@@ -140,7 +140,7 @@
                                     <div class="row">
                                         <div class="col-md-6 mb-3">
                                             <label class="form-label">System Name</label>
-                                            <input type="text" class="form-control" id="system-name" value="Garuda Security Suite">
+                                            <input type="text" class="form-control" id="system-name" value="Aegis Security Suite">
                                         </div>
                                         <div class="col-md-6 mb-3">
                                             <label class="form-label">Environment</label>
@@ -855,7 +855,7 @@ function updateConfigMetrics(data) {
 function populateConfigForms(data) {
     // Populate general configuration
     if (data.general) {
-        document.getElementById('system-name').value = data.general.system_name || 'Garuda Security Suite';
+        document.getElementById('system-name').value = data.general.system_name || 'Aegis Security Suite';
         document.getElementById('environment').value = data.general.environment || 'production';
         document.getElementById('log-level').value = data.general.log_level || 'info';
         document.getElementById('data-retention').value = data.general.data_retention || 30;
@@ -1055,7 +1055,7 @@ function exportConfig() {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `garuda-config-${new Date().toISOString().split('T')[0]}.json`;
+            a.download = `aegis-config-${new Date().toISOString().split('T')[0]}.json`;
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);

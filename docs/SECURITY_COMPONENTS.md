@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the comprehensive security components implemented in the Garuda Security Suite to ensure secure operation, input validation, and proper error handling.
+This document describes the comprehensive security components implemented in the Aegis Security Suite to ensure secure operation, input validation, and proper error handling.
 
 ## Components
 

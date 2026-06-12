@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Smart Database Migration Script for Garuda Security Suite
+Smart Database Migration Script for Aegis Security Suite
 Checks for existing columns before adding them to avoid errors
 """
 
@@ -381,7 +381,7 @@ def main():
     security_suite_home = os.environ.get('SECURITY_SUITE_HOME', os.path.dirname(script_dir))
     
     print("=" * 50)
-    print("Garuda Security Suite Smart Database Migration")
+    print("Aegis Security Suite Smart Database Migration")
     print("=" * 50)
     print(f"Security Suite Home: {security_suite_home}")
     print(f"Timestamp: {datetime.now()}")
@@ -415,7 +415,7 @@ def main():
         print("✓ All database migrations completed successfully!")
         print()
         print("Next steps:")
-        print("1. Restart the web dashboard: sudo systemctl restart garuda-dashboard")
+        print("1. Restart the web dashboard: sudo systemctl restart aegis-dashboard")
         print("2. Test API endpoints to verify functionality")
         print("3. Check dashboard logs for any issues")
         return 0

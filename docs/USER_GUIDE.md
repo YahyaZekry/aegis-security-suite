@@ -1,4 +1,4 @@
-# Garuda Security Suite - Comprehensive User Guide
+# Aegis Security Suite - Comprehensive User Guide
 
 ## Table of Contents
 
@@ -55,9 +55,9 @@
 
 ### System Requirements
 
-The Garuda Security Suite is designed specifically for Garuda Linux and requires the following:
+The Aegis Security Suite is designed specifically for Aegis Linux and requires the following:
 
-- **Operating System**: Garuda Linux (latest stable version)
+- **Operating System**: Aegis Linux (latest stable version)
 - **Architecture**: x86_64 (64-bit)
 - **Memory**: Minimum 4GB RAM (8GB recommended)
 - **Storage**: 2GB free disk space for installation
@@ -70,14 +70,14 @@ The Garuda Security Suite is designed specifically for Garuda Linux and requires
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/garuda-linux/security-suite.git
+   git clone https://github.com/aegis-linux/security-suite.git
    cd security-suite
    ```
 
 2. Run the installation script:
    ```bash
-   chmod +x setup-security-suite.sh
-   sudo ./setup-security-suite.sh
+   chmod +x setup-aegis.sh
+   sudo ./setup-aegis.sh
    ```
 
 3. Follow the on-screen prompts to complete the installation.
@@ -113,8 +113,8 @@ After installation, perform these initial configuration steps:
 
 2. **Set Up Configuration File**:
    ```bash
-   cp configs/security-config.conf ~/.config/garuda-security/
-   nano ~/.config/garuda-security/security-config.conf
+   cp configs/security-config.conf ~/.config/aegis-security/
+   nano ~/.config/aegis-security/security-config.conf
    ```
 
 3. **Create Directories**:
@@ -148,14 +148,14 @@ After installation, perform these initial configuration steps:
 
 ### Accessing the Dashboard
 
-The Garuda Security Suite provides a comprehensive web-based dashboard for monitoring and managing security operations.
+The Aegis Security Suite provides a comprehensive web-based dashboard for monitoring and managing security operations.
 
 #### Starting the Dashboard
 
 1. **Automatic Start** (if installed as service):
    ```bash
-   sudo systemctl start garuda-dashboard
-   sudo systemctl enable garuda-dashboard  # Start on boot
+   sudo systemctl start aegis-dashboard
+   sudo systemctl enable aegis-dashboard  # Start on boot
    ```
 
 2. **Manual Start**:
@@ -172,7 +172,7 @@ The Garuda Security Suite provides a comprehensive web-based dashboard for monit
 
 - **Default Credentials**: 
   - Username: `admin`
-  - Password: `garuda123` (change immediately after first login)
+  - Password: `aegis123` (change immediately after first login)
 
 - **Changing Password**:
   1. Navigate to Configuration → General
@@ -240,7 +240,7 @@ The dashboard consists of several main sections accessible via the navigation ba
 
 ### Running Manual Security Scans
 
-The Garuda Security Suite provides multiple scanning options to detect various types of security threats.
+The Aegis Security Suite provides multiple scanning options to detect various types of security threats.
 
 #### Quick Scan
 
@@ -322,14 +322,14 @@ Automated scanning ensures continuous security monitoring without manual interve
 2. **Via Command Line**:
    ```bash
    # Enable systemd timers
-   sudo systemctl enable garuda-daily-scan.timer
-   sudo systemctl enable garuda-weekly-scan.timer
-   sudo systemctl enable garuda-monthly-scan.timer
+   sudo systemctl enable aegis-daily-scan.timer
+   sudo systemctl enable aegis-weekly-scan.timer
+   sudo systemctl enable aegis-monthly-scan.timer
    
    # Start timers
-   sudo systemctl start garuda-daily-scan.timer
-   sudo systemctl start garuda-weekly-scan.timer
-   sudo systemctl start garuda-monthly-scan.timer
+   sudo systemctl start aegis-daily-scan.timer
+   sudo systemctl start aegis-weekly-scan.timer
+   sudo systemctl start aegis-monthly-scan.timer
    ```
 
 #### Schedule Configuration
@@ -353,18 +353,18 @@ MONTHLY_TIME="04:00"
 
 1. **View Active Timers**:
    ```bash
-   systemctl list-timers --all | grep garuda
+   systemctl list-timers --all | grep aegis
    ```
 
 2. **Disable Scheduled Scans**:
    ```bash
-   sudo systemctl stop garuda-daily-scan.timer
-   sudo systemctl disable garuda-daily-scan.timer
+   sudo systemctl stop aegis-daily-scan.timer
+   sudo systemctl disable aegis-daily-scan.timer
    ```
 
 3. **Run Scheduled Scan Manually**:
    ```bash
-   sudo systemctl start garuda-daily-scan.service
+   sudo systemctl start aegis-daily-scan.service
    ```
 
 ### Interpreting Scan Results
@@ -711,7 +711,7 @@ Incident management provides a structured approach to handling security events f
 
 #### Incident Types
 
-The Garuda Security Suite categorizes incidents into several types:
+The Aegis Security Suite categorizes incidents into several types:
 
 1. **Malware Detected**: Virus, trojan, or other malicious software
 2. **Suspicious Network**: Unusual network activity or connections
@@ -1001,7 +1001,7 @@ The Indicators of Compromise (IOC) database provides a comprehensive repository 
 
 #### IOC Types
 
-The Garuda Security Suite maintains several types of IOCs:
+The Aegis Security Suite maintains several types of IOCs:
 
 1. **IP Addresses**:
    - Malicious IP addresses
@@ -1303,7 +1303,7 @@ Regular updates ensure the threat intelligence database remains current and effe
 
 ### Security Settings Overview
 
-The Garuda Security Suite provides comprehensive configuration options to customize security operations according to your specific requirements.
+The Aegis Security Suite provides comprehensive configuration options to customize security operations according to your specific requirements.
 
 #### Configuration File Structure
 
@@ -1695,14 +1695,14 @@ Scheduling configuration determines when automated security operations are perfo
 1. **Systemd Timer Configuration**:
    ```bash
    # List active timers
-   systemctl list-timers --all | grep garuda
+   systemctl list-timers --all | grep aegis
    
    # Enable/disable timers
-   sudo systemctl enable garuda-daily-scan.timer
-   sudo systemctl disable garuda-weekly-scan.timer
+   sudo systemctl enable aegis-daily-scan.timer
+   sudo systemctl disable aegis-weekly-scan.timer
    
    # Modify timer configuration
-   sudo systemctl edit garuda-daily-scan.timer
+   sudo systemctl edit aegis-daily-scan.timer
    ```
 
 2. **Cron Job Configuration**:
@@ -1724,14 +1724,14 @@ Scheduling configuration determines when automated security operations are perfo
 
 ### Common Issues and Solutions
 
-This section addresses common issues that users may encounter while using the Garuda Security Suite.
+This section addresses common issues that users may encounter while using the Aegis Security Suite.
 
 #### Installation Issues
 
 1. **Permission Denied Errors**:
    - **Problem**: Installation fails with permission errors
    - **Solution**: Ensure you have sudo privileges and run installation with sudo
-   - **Command**: `sudo ./setup-security-suite.sh`
+   - **Command**: `sudo ./setup-aegis.sh`
 
 2. **Missing Dependencies**:
    - **Problem**: Required packages not found
@@ -1757,8 +1757,8 @@ This section addresses common issues that users may encounter while using the Ga
    - **Solution**: Check if dashboard service is running
    - **Command**: 
      ```bash
-     sudo systemctl status garuda-dashboard
-     sudo systemctl start garuda-dashboard
+     sudo systemctl status aegis-dashboard
+     sudo systemctl start aegis-dashboard
      ```
 
 2. **Login Authentication Failures**:
@@ -1927,8 +1927,8 @@ When troubleshooting complex issues, follow these systematic debugging procedure
 1. **System Logs**:
    ```bash
    # View system logs
-   journalctl -u garuda-dashboard -f
-   journalctl -u garuda-daily-scan -f
+   journalctl -u aegis-dashboard -f
+   journalctl -u aegis-daily-scan -f
    ```
 
 2. **Application Logs**:
@@ -1977,8 +1977,8 @@ When troubleshooting complex issues, follow these systematic debugging procedure
 1. **Resource Usage**:
    ```bash
    # Monitor resource usage
-   top -p $(pgrep -f garuda-security-suite)
-   iotop -p $(pgrep -f garuda-security-suite)
+   top -p $(pgrep -f aegis-security-suite)
+   iotop -p $(pgrep -f aegis-security-suite)
    ```
 
 2. **Performance Profiling**:
@@ -1992,7 +1992,7 @@ When troubleshooting complex issues, follow these systematic debugging procedure
 
 ### Log File Locations
 
-The Garuda Security Suite maintains comprehensive logs for troubleshooting and analysis.
+The Aegis Security Suite maintains comprehensive logs for troubleshooting and analysis.
 
 #### Main Log Directory
 
@@ -2024,10 +2024,10 @@ All logs are stored in `$HOME/security-suite/logs/`:
 2. **Log Rotation Configuration**:
    ```bash
    # View log rotation configuration
-   cat /etc/logrotate.d/garuda-security-suite
+   cat /etc/logrotate.d/aegis-security-suite
    
    # Force log rotation
-   logrotate -f /etc/logrotate.d/garuda-security-suite
+   logrotate -f /etc/logrotate.d/aegis-security-suite
    ```
 
 #### Log Analysis Tools
@@ -2064,25 +2064,25 @@ When encountering issues that cannot be resolved through troubleshooting, utiliz
 #### Community Support
 
 1. **GitHub Issues**:
-   - Report bugs: https://github.com/garuda-linux/security-suite/issues
-   - Feature requests: https://github.com/garuda-linux/security-suite/issues/new
+   - Report bugs: https://github.com/aegis-linux/security-suite/issues
+   - Feature requests: https://github.com/aegis-linux/security-suite/issues/new
 
 2. **Forums**:
-   - Garuda Linux Forums: https://forum.garudalinux.org
-   - Security Section: https://forum.garudalinux.org/c/security
+   - Aegis Linux Forums: https://forum.aegislinux.org
+   - Security Section: https://forum.aegislinux.org/c/security
 
 3. **Chat/IRC**:
-   - Garuda Linux Discord: https://discord.gg/garudalinux
+   - Aegis Linux Discord: https://discord.gg/aegislinux
    - #security channel for security discussions
 
 #### Professional Support
 
 1. **Enterprise Support**:
-   - Contact: security@garudalinux.org
+   - Contact: security@aegislinux.org
    - Response time: 24-48 hours
 
 2. **Security Incident Reporting**:
-   - Critical security issues: security@garudalinux.org
+   - Critical security issues: security@aegislinux.org
    - PGP key available for encrypted communications
 
 #### Contributing
@@ -2114,11 +2114,11 @@ For users who want to get started quickly, follow these essential steps:
 
 ```bash
 # Clone repository
-git clone https://github.com/garuda-linux/security-suite.git
+git clone https://github.com/aegis-linux/security-suite.git
 cd security-suite
 
 # Run installation script
-sudo ./setup-security-suite.sh
+sudo ./setup-aegis.sh
 
 # Follow on-screen prompts
 ```
@@ -2138,7 +2138,7 @@ cd web-dashboard
 ### 3. First Security Scan (1 minute)
 
 1. Open browser to `http://localhost:8080`
-2. Login with default credentials (admin/garuda123)
+2. Login with default credentials (admin/aegis123)
 3. Click "Start Quick Scan" on dashboard
 4. Wait for scan completion
 
@@ -2163,7 +2163,7 @@ cd web-dashboard
 3. Enable automated scheduling
 4. Apply changes
 
-You're now ready to use the Garuda Security Suite! The system will:
+You're now ready to use the Aegis Security Suite! The system will:
 - Monitor your system for security threats
 - Perform automated scans daily
 - Alert you to any security issues
@@ -2175,7 +2175,7 @@ For detailed information about any feature, refer to the corresponding section i
 
 ## Feature Reference
 
-This section provides detailed information about all features and capabilities of the Garuda Security Suite.
+This section provides detailed information about all features and capabilities of the Aegis Security Suite.
 
 ### Dashboard Features
 
@@ -2300,4 +2300,4 @@ This section provides detailed information about all features and capabilities o
 
 ---
 
-This comprehensive user guide provides all the information needed to effectively use the Garuda Security Suite for comprehensive security monitoring and protection. For additional assistance, refer to the support resources section or contact the Garuda Linux security team.
+This comprehensive user guide provides all the information needed to effectively use the Aegis Security Suite for comprehensive security monitoring and protection. For additional assistance, refer to the support resources section or contact the Aegis Linux security team.

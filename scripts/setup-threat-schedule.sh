@@ -11,7 +11,7 @@ mkdir -p "$HOME/.config/systemd/user"
 
 cat > "$HOME/.config/systemd/user/threat-feed-update.service" << EOF
 [Unit]
-Description=Garuda Security Suite - Threat Intelligence Feed Updates
+Description=Aegis Security Suite - Threat Intelligence Feed Updates
 After=network-online.target
 
 [Service]

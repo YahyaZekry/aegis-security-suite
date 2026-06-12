@@ -1,5 +1,5 @@
 """
-System API Module for Garuda Security Suite Dashboard
+System API Module for Aegis Security Suite Dashboard
 Provides system status, metrics, and monitoring endpoints
 """
 
@@ -160,10 +160,10 @@ def get_network_interfaces():
     return interfaces
 
 def get_security_suite_status():
-    """Get Garuda Security Suite status"""
+    """Get Aegis Security Suite status"""
     try:
         # Check if security suite is installed
-        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/garuda-security-suite')
+        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
         
         if not os.path.exists(security_home):
             return {
@@ -209,9 +209,9 @@ def get_service_status():
     
     # List of services to check
     service_list = [
-        'garuda-behavioral-monitor',
-        'garuda-threat-intelligence',
-        'garuda-incident-response'
+        'aegis-behavioral-monitor',
+        'aegis-threat-intelligence',
+        'aegis-incident-response'
     ]
     
     for service in service_list:
@@ -238,7 +238,7 @@ def get_service_status():
 def get_security_suite_version():
     """Get security suite version"""
     try:
-        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/garuda-security-suite')
+        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
         version_file = os.path.join(security_home, 'VERSION')
         
         if os.path.exists(version_file):
@@ -461,7 +461,7 @@ def get_system_logs_lines(lines):
 def get_security_logs_lines(lines):
     """Get security suite logs"""
     try:
-        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/garuda-security-suite')
+        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
         logs_dir = os.path.join(security_home, 'logs')
         
         if not os.path.exists(logs_dir):
@@ -547,7 +547,7 @@ def get_open_incidents_count():
 def get_auth_logs_lines(lines):
     """Get authentication log lines"""
     try:
-        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/garuda-security-suite')
+        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
         logs_dir = os.path.join(security_home, 'logs')
         
         if not os.path.exists(logs_dir):
@@ -578,7 +578,7 @@ def get_auth_logs_lines(lines):
 def get_error_logs_lines(lines):
     """Get error log lines"""
     try:
-        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/garuda-security-suite')
+        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
         logs_dir = os.path.join(security_home, 'logs')
         
         if not os.path.exists(logs_dir):

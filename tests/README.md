@@ -1,6 +1,6 @@
-# Garuda Security Suite Testing Framework
+# Aegis Security Suite Testing Framework
 
-This comprehensive testing framework provides complete validation for the Garuda Security Suite, ensuring all Phase 1 implementation requirements are met with high test coverage and security validation.
+This comprehensive testing framework provides complete validation for the Aegis Security Suite, ensuring all Phase 1 implementation requirements are met with high test coverage and security validation.
 
 ## Overview
 
@@ -248,7 +248,7 @@ The framework enforces quality gates:
 1. **BATS not found**
    ```bash
    # Install BATS
-   sudo pacman -S bats  # Arch/Garuda
+   sudo pacman -S bats  # Arch/Aegis
    # Or install from GitHub
    git clone https://github.com/bats-core/bats-core.git
    cd bats-core && sudo ./install.sh /usr/local
@@ -257,7 +257,7 @@ The framework enforces quality gates:
 2. **Shellcheck not found**
    ```bash
    # Install Shellcheck
-   sudo pacman -S shellcheck  # Arch/Garuda
+   sudo pacman -S shellcheck  # Arch/Aegis
    sudo apt-get install shellcheck  # Ubuntu/Debian
    ```
 
@@ -270,7 +270,7 @@ The framework enforces quality gates:
 4. **Test environment conflicts**
    ```bash
    # Clean test environment
-   rm -rf /tmp/garuda-security-test-*
+   rm -rf /tmp/aegis-security-test-*
    ```
 
 ### Debug Mode
@@ -301,4 +301,4 @@ When adding new tests:
 
 ## License
 
-This testing framework is part of the Garuda Security Suite project and follows the same license terms.
+This testing framework is part of the Aegis Security Suite project and follows the same license terms.

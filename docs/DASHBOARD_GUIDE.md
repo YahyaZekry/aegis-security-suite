@@ -1,6 +1,6 @@
-# 🖥️ Garuda Security Suite - Dashboard Access Guide
+# 🖥️ Aegis Security Suite - Dashboard Access Guide
 
-### _"Complete guide to accessing and using the Garuda Security Dashboard"_
+### _"Complete guide to accessing and using the Aegis Security Dashboard"_
 
 ---
 
@@ -23,9 +23,9 @@
 
 ## 1. Dashboard Overview
 
-### What is the Garuda Security Dashboard?
+### What is the Aegis Security Dashboard?
 
-The Garuda Security Dashboard is a web-based interface that provides:
+The Aegis Security Dashboard is a web-based interface that provides:
 
 - **Real-time Security Monitoring**: Live view of your system's security status
 - **Behavioral Analysis**: Visual representation of system behavior and anomalies
@@ -38,7 +38,7 @@ The Garuda Security Dashboard is a web-based interface that provides:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Garuda Security Dashboard                │
+│                    Aegis Security Dashboard                │
 ├─────────────────────────────────────────────────────────────┤
 │  Web Frontend (Flask + Socket.IO)                           │
 │  ├── Authentication System                                   │
@@ -106,7 +106,7 @@ The Garuda Security Dashboard is a web-based interface that provides:
 
 Before accessing the dashboard, ensure:
 
-1. **Security Suite Installed**: Complete installation of Garuda Security Suite
+1. **Security Suite Installed**: Complete installation of Aegis Security Suite
 2. **Dashboard Service Running**: Dashboard service must be started
 3. **Network Access**: Network connectivity to the dashboard server
 4. **Modern Browser**: Updated web browser with JavaScript enabled
@@ -119,10 +119,10 @@ Before accessing the dashboard, ensure:
 cd ~/security-suite
 
 # Start the dashboard
-./src/core/scripts/start-security-suite.sh start web-dashboard
+./src/core/scripts/start-aegis.sh start web-dashboard
 
 # Check dashboard status
-./src/core/scripts/start-security-suite.sh status
+./src/core/scripts/start-aegis.sh status
 ```
 
 #### Method 2: Using the Dashboard Script
@@ -154,7 +154,7 @@ python3 app.py
 #### Check Service Status
 ```bash
 # Using service management script
-./src/core/scripts/start-security-suite.sh status
+./src/core/scripts/start-aegis.sh status
 
 # Expected output should show:
 # ✅ Web Dashboard: Running (PID: 12345, Port: 8080)
@@ -215,7 +215,7 @@ hostname -I
 The dashboard comes with default credentials for first-time access:
 
 - **Username**: `admin`
-- **Password**: `garuda123`
+- **Password**: `aegis123`
 
 ⚠️ **Security Warning**: Change the default password immediately after first login!
 
@@ -228,7 +228,7 @@ The dashboard comes with default credentials for first-time access:
 
 #### Step 2: Enter Credentials
 1. Enter username: `admin`
-2. Enter password: `garuda123`
+2. Enter password: `aegis123`
 3. Click "Login" button
 
 #### Step 3: First-Time Setup
@@ -241,7 +241,7 @@ The dashboard comes with default credentials for first-time access:
 #### Method 1: Through Dashboard UI
 1. Click on your username in the top-right corner
 2. Select "Change Password" from the dropdown
-3. Enter current password: `garuda123`
+3. Enter current password: `aegis123`
 4. Enter new password (minimum 8 characters, include numbers and symbols)
 5. Confirm new password
 6. Click "Change Password"
@@ -1011,7 +1011,7 @@ print(f'User {username} created successfully')
 
 ### Responsive Design
 
-The Garuda Security Dashboard is fully responsive and works on:
+The Aegis Security Dashboard is fully responsive and works on:
 
 - 📱 **Smartphones**: iOS and Android devices
 - 📟 **Tablets**: iPad, Android tablets, and similar devices
@@ -1124,13 +1124,13 @@ The Garuda Security Dashboard is fully responsive and works on:
    from auth import hash_password, update_password
    import sqlite3
    
-   hashed_password = hash_password('garuda123')
+   hashed_password = hash_password('aegis123')
    conn = sqlite3.connect('auth.db')
    cursor = conn.cursor()
    cursor.execute('UPDATE users SET password = ? WHERE username = ?', (hashed_password, 'admin'))
    conn.commit()
    conn.close()
-   print('Password reset to garuda123')
+   print('Password reset to aegis123')
    "
    ```
 
@@ -1252,7 +1252,7 @@ If you continue to experience issues:
    - Application logs: `~/security-suite/logs/`
 
 3. **Report Issues**
-   - GitHub Issues: [Report a problem](https://github.com/YahyaZekry/garuda-security-suite/issues)
+   - GitHub Issues: [Report a problem](https://github.com/YahyaZekry/aegis-security-suite/issues)
    - Include error messages, logs, and system information
 
 ---
@@ -1264,10 +1264,10 @@ If you continue to experience issues:
 ```bash
 # Start dashboard
 cd ~/security-suite
-./src/core/scripts/start-security-suite.sh start web-dashboard
+./src/core/scripts/start-aegis.sh start web-dashboard
 
 # Check status
-./src/core/scripts/start-security-suite.sh status
+./src/core/scripts/start-aegis.sh status
 
 # Access dashboard
 http://localhost:8080
@@ -1276,7 +1276,7 @@ http://[SERVER_IP]:8080
 
 # Default credentials
 Username: admin
-Password: garuda123
+Password: aegis123
 
 # Reset password
 cd ~/security-suite/src/dashboard
@@ -1307,10 +1307,10 @@ conn.close()
 ```bash
 # Emergency restart
 cd ~/security-suite
-./src/core/scripts/start-security-suite.sh restart all
+./src/core/scripts/start-aegis.sh restart all
 
 # Emergency status check
-./src/core/scripts/start-security-suite.sh status
+./src/core/scripts/start-aegis.sh status
 
 # Emergency log check
 tail -n 50 ~/security-suite/src/dashboard/dashboard.log
@@ -1320,7 +1320,7 @@ tail -n 50 ~/security-suite/src/dashboard/dashboard.log
 
 ## 🎉 Dashboard Access Complete!
 
-You now have comprehensive knowledge of accessing and using the Garuda Security Dashboard. The dashboard provides a powerful, user-friendly interface for monitoring and managing your security suite.
+You now have comprehensive knowledge of accessing and using the Aegis Security Dashboard. The dashboard provides a powerful, user-friendly interface for monitoring and managing your security suite.
 
 **Remember to:**
 - Change default passwords immediately

@@ -1,4 +1,4 @@
-# 🔧 Garuda Security Suite - Troubleshooting Guide
+# 🔧 Aegis Security Suite - Troubleshooting Guide
 
 ### _"Comprehensive troubleshooting solutions for common issues and problems"_
 
@@ -26,7 +26,7 @@
 ### Problem: Installation Script Fails to Start
 
 #### Symptoms
-- `setup-security-suite.sh` script doesn't execute
+- `setup-aegis.sh` script doesn't execute
 - Permission denied errors
 - Script not found errors
 
@@ -35,27 +35,27 @@
 ##### Solution 1: Check Script Permissions
 ```bash
 # Navigate to the security suite directory
-cd garuda-security-suite
+cd aegis-security-suite
 
 # Check script permissions
-ls -la setup-security-suite.sh
+ls -la setup-aegis.sh
 
 # If permissions are missing, add execute permission
-chmod +x setup-security-suite.sh
+chmod +x setup-aegis.sh
 
 # Try running the script again
-./setup-security-suite.sh
+./setup-aegis.sh
 ```
 
 ##### Solution 2: Verify Script Location
 ```bash
 # Check if you're in the correct directory
 pwd
-ls -la setup-security-suite.sh
+ls -la setup-aegis.sh
 
 # If script is not found, navigate to correct directory
-cd /path/to/garuda-security-suite
-./setup-security-suite.sh
+cd /path/to/aegis-security-suite
+./setup-aegis.sh
 ```
 
 ##### Solution 3: Check Shell Compatibility
@@ -65,7 +65,7 @@ which bash
 bash --version
 
 # If bash is not available, try with sh
-sh setup-security-suite.sh
+sh setup-aegis.sh
 ```
 
 ### Problem: Installation Fails with Dependency Errors
@@ -89,7 +89,7 @@ sudo pacman -S --needed base-devel git python python-pip sqlite3
 sudo pacman -S --needed clamav rkhunter chkrootkit lynis
 
 # Try installation again
-./setup-security-suite.sh
+./setup-aegis.sh
 ```
 
 ##### Solution 2: Check Python Installation
@@ -116,7 +116,7 @@ sudo pacman -S clamav rkhunter chkrootkit lynis
 sudo freshclam
 
 # Try installation again
-./setup-security-suite.sh
+./setup-aegis.sh
 ```
 
 ### Problem: Installation Fails with Permission Errors
@@ -152,7 +152,7 @@ mkdir -p ~/security-suite
 chmod 755 ~/security-suite
 
 # Try installation again
-./setup-security-suite.sh
+./setup-aegis.sh
 ```
 
 ##### Solution 3: Check Disk Space
@@ -181,7 +181,7 @@ df -h $HOME
 ```bash
 # Check all security suite services
 cd $SECURITY_SUITE_HOME
-./scripts/start-security-suite.sh status
+./scripts/start-aegis.sh status
 
 # Check individual service status
 systemctl --user status security-daily-scan.service
@@ -203,12 +203,12 @@ journalctl --user -u security-daily-scan.service --since "1 hour ago" --no-pager
 ##### Solution 3: Restart Services
 ```bash
 # Restart all services
-./scripts/start-security-suite.sh restart all
+./scripts/start-aegis.sh restart all
 
 # Restart individual service
-./scripts/start-security-suite.sh restart daily-scan
-./scripts/start-security-suite.sh restart weekly-scan
-./scripts/start-security-suite.sh restart monthly-scan
+./scripts/start-aegis.sh restart daily-scan
+./scripts/start-aegis.sh restart weekly-scan
+./scripts/start-aegis.sh restart monthly-scan
 ```
 
 ##### Solution 4: Reload Systemd
@@ -222,7 +222,7 @@ systemctl --user enable security-weekly-scan.timer
 systemctl --user enable security-monthly-scan.timer
 
 # Start services again
-./scripts/start-security-suite.sh start all
+./scripts/start-aegis.sh start all
 ```
 
 ### Problem: Services Start but Stop Immediately
@@ -736,7 +736,7 @@ sudo pacman -Syu
 ```bash
 # Default credentials are:
 # Username: admin
-# Password: garuda123
+# Password: aegis123
 
 # Try logging in with default credentials
 ```
@@ -754,12 +754,12 @@ conn = sqlite3.connect('auth.db')
 cursor = conn.cursor()
 
 # Update admin password
-hashed_password = hash_password('garuda123')
+hashed_password = hash_password('aegis123')
 cursor.execute('UPDATE users SET password = ? WHERE username = ?', (hashed_password, 'admin'))
 conn.commit()
 conn.close()
 
-print('Admin password reset to garuda123')
+print('Admin password reset to aegis123')
 "
 ```
 
@@ -826,9 +826,9 @@ cd ~/security-suite/src/dashboard
 ##### Solution 1: Check API Endpoints
 ```bash
 # Test API endpoints
-curl -u admin:garuda123 http://localhost:8080/api/system/status
-curl -u admin:garuda123 http://localhost:8080/api/behavioral/threat-score
-curl -u admin:garuda123 http://localhost:8080/api/incidents/list
+curl -u admin:aegis123 http://localhost:8080/api/system/status
+curl -u admin:aegis123 http://localhost:8080/api/behavioral/threat-score
+curl -u admin:aegis123 http://localhost:8080/api/incidents/list
 ```
 
 ##### Solution 2: Check WebSocket Connection
@@ -1250,7 +1250,7 @@ sudo kill -STOP 1234  # Replace with actual PID
 ```bash
 # Run comprehensive integration tests
 cd $SECURITY_SUITE_HOME
-./test-suite-comprehensive.sh
+./tests/test-suite-comprehensive.sh
 
 # Check test results
 cat $HOME/security-suite/test-results/test-report-*.txt
@@ -1259,9 +1259,9 @@ cat $HOME/security-suite/test-results/test-report-*.txt
 ##### Solution 2: Check Component Communication
 ```bash
 # Test API communication between components
-curl -u admin:garuda123 http://localhost:8080/api/system/status
-curl -u admin:garuda123 http://localhost:8080/api/behavioral/threat-score
-curl -u admin:garuda123 http://localhost:8080/api/incidents/list
+curl -u admin:aegis123 http://localhost:8080/api/system/status
+curl -u admin:aegis123 http://localhost:8080/api/behavioral/threat-score
+curl -u admin:aegis123 http://localhost:8080/api/incidents/list
 ```
 
 ##### Solution 3: Check Data Flow
@@ -1274,7 +1274,7 @@ curl -u admin:garuda123 http://localhost:8080/api/incidents/list
 sqlite3 $HOME/security-suite/configs/incident_response/incidents.db "SELECT * FROM incidents ORDER BY created_at DESC LIMIT 5;"
 
 # 3. Check if dashboard shows data
-curl -u admin:garuda123 http://localhost:8080/api/incidents/list
+curl -u admin:aegis123 http://localhost:8080/api/incidents/list
 ```
 
 ### Problem: Configuration Conflicts
@@ -1301,7 +1301,7 @@ grep -n "SCAN_DIRECTORIES" $HOME/security-suite/configs/security-config.conf
 cp $HOME/security-suite/configs/security-config.conf $HOME/security-suite/configs/security-config.conf.backup
 
 # Reset to default configuration
-./setup-security-suite.sh
+./setup-aegis.sh
 
 # Reconfigure with desired settings
 ```
@@ -1345,7 +1345,7 @@ df -h
 ```bash
 # Restart all security services
 cd $SECURITY_SUITE_HOME
-./scripts/start-security-suite.sh restart all
+./scripts/start-aegis.sh restart all
 
 # Restart dashboard
 cd $HOME/security-suite/web-dashboard
@@ -1428,10 +1428,10 @@ sqlite3 $HOME/security-suite/configs/behavioral_analysis/behavioral_data.db ".re
 ##### Step 3: System Verification
 ```bash
 # Run comprehensive tests
-$SECURITY_SUITE_HOME/test-suite-comprehensive.sh
+$SECURITY_SUITE_HOME/tests/test-suite-comprehensive.sh
 
 # Verify all components are working
-./scripts/start-security-suite.sh status
+./scripts/start-aegis.sh status
 ```
 
 ---
@@ -1453,8 +1453,8 @@ $SECURITY_SUITE_HOME/test-suite-comprehensive.sh
 - [User Guide](docs/USER_GUIDE.md)
 
 #### Community Support
-- [GitHub Issues](https://github.com/YahyaZekry/garuda-security-suite/issues)
-- [GitHub Discussions](https://github.com/YahyaZekry/garuda-security-suite/discussions)
+- [GitHub Issues](https://github.com/YahyaZekry/aegis-security-suite/issues)
+- [GitHub Discussions](https://github.com/YahyaZekry/aegis-security-suite/discussions)
 
 #### Professional Support
 - Contact security team for critical incidents
@@ -1467,7 +1467,7 @@ When reporting issues, include:
 1. **System Information**
    ```bash
    uname -a
-   pacman -Q garuda-security-suite
+   pacman -Q aegis-security-suite
    ```
 
 2. **Error Messages**
@@ -1489,10 +1489,10 @@ When reporting issues, include:
 ```bash
 # Emergency restart
 cd $SECURITY_SUITE_HOME
-./scripts/start-security-suite.sh restart all
+./scripts/start-aegis.sh restart all
 
 # Emergency status check
-./scripts/start-security-suite.sh status
+./scripts/start-aegis.sh status
 
 # Emergency log check
 tail -n 50 $HOME/security-suite/logs/manual/security_scan_*.log
@@ -1535,7 +1535,7 @@ cp $HOME/security-suite/configs/security-config.conf.backup $HOME/security-suite
 
 ## 🎉 Troubleshooting Complete!
 
-This troubleshooting guide covers the most common issues you may encounter with the Garuda Security Suite. For issues not covered here, please refer to the additional documentation or seek help from the community.
+This troubleshooting guide covers the most common issues you may encounter with the Aegis Security Suite. For issues not covered here, please refer to the additional documentation or seek help from the community.
 
 **Remember to:**
 - Keep calm and follow procedures systematically

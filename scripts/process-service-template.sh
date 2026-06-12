@@ -91,7 +91,7 @@ case "${1:-help}" in
         echo "  BACKUPS_DIR: $BACKUPS_DIR"
         ;;
     "help"|"-h"|"--help")
-        echo "Service Template Processor for Garuda Security Suite"
+        echo "Service Template Processor for Aegis Security Suite"
         echo ""
         echo "Usage: $0 <command> [arguments]"
         echo ""
@@ -102,8 +102,8 @@ case "${1:-help}" in
         echo "  help                              Show this help message"
         echo ""
         echo "Examples:"
-        echo "  $0 process garuda-dashboard.service.template garuda-dashboard.service"
-        echo "  $0 install garuda-dashboard garuda-dashboard.service.template /etc/systemd/system"
+        echo "  $0 process aegis-dashboard.service.template aegis-dashboard.service"
+        echo "  $0 install aegis-dashboard aegis-dashboard.service.template /etc/systemd/system"
         echo "  $0 env"
         ;;
     *)

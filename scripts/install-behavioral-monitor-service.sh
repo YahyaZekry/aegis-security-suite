@@ -57,7 +57,7 @@ install_service() {
     print_status "Installing behavioral monitor service and timer..."
     
     # Update service file with correct paths
-    sed "s|/opt/garuda-security-suite|$SECURITY_SUITE_HOME|g" \
+    sed "s|/opt/aegis-security-suite|$SECURITY_SUITE_HOME|g" \
         "$SCRIPT_DIR/behavioral-monitor.service" > "$SERVICE_DIR/behavioral-monitor.service"
     
     # Copy timer file

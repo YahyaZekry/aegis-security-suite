@@ -11,7 +11,7 @@ log_info "Setting up automated threat feed updates..."
 # Create systemd service for threat intelligence updates
 cat > "$SECURITY_SUITE_HOME/scripts/threat-feed-update.service" << EOF
 [Unit]
-Description=Garuda Security Suite - Threat Intelligence Feed Updates
+Description=Aegis Security Suite - Threat Intelligence Feed Updates
 After=network-online.target
 Wants=network-online.target
 
@@ -118,7 +118,7 @@ cp "$SECURITY_SUITE_HOME/scripts/threat-feed-cleanup.timer" "$SYSTEMD_USER_DIR/"
 # Create a service for cleanup
 cat > "$SYSTEMD_USER_DIR/threat-feed-cleanup.service" << EOF
 [Unit]
-Description=Garuda Security Suite - Threat Intelligence Cleanup
+Description=Aegis Security Suite - Threat Intelligence Cleanup
 After=network-online.target
 
 [Service]

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Security Monitoring Module for Garuda Security Suite Dashboard
+Security Monitoring Module for Aegis Security Suite Dashboard
 Provides real-time security monitoring, alerts, and automated scanning
 """
 

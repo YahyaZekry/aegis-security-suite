@@ -4,11 +4,11 @@
 SCRIPT_DIR="$(dirname "$0")"
 SECURITY_SUITE_HOME="$(dirname "$SCRIPT_DIR")"
 
-echo "Enabling optimized Garuda Security Suite components..."
+echo "Enabling optimized Aegis Security Suite components..."
 
 # Stop existing services
-systemctl --user stop garuda-behavioral-monitor 2>/dev/null || true
-systemctl --user stop garuda-dashboard 2>/dev/null || true
+systemctl --user stop aegis-behavioral-monitor 2>/dev/null || true
+systemctl --user stop aegis-dashboard 2>/dev/null || true
 
 # Start optimized services
 systemctl --user daemon-reload

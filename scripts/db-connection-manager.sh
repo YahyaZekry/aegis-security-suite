@@ -1,5 +1,5 @@
 #!/bin/bash
-# Database Connection Manager for Garuda Security Suite
+# Database Connection Manager for Aegis Security Suite
 # Provides connection pooling and resource management for SQLite databases
 
 source "$(dirname "$0")/common-functions.sh"

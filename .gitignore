@@ -1,4 +1,4 @@
-# Garuda Security Suite - Git Ignore File
+# Aegis Security Suite - Git Ignore File
 
 # Temporary files
 *.tmp
@@ -122,7 +122,7 @@ local-data/
 personal-config/
 
 # Temporary test directories
-/tmp/garuda-security-test/
+/tmp/aegis-security-test/
 /tmp/security-suite-*/
 
 # Installation artifacts
@@ -131,12 +131,12 @@ personal-config/
 *.setup
 
 # Systemd user services (generated per user)
-~/.config/systemd/user/garuda-*.timer
-~/.config/systemd/user/garuda-*.service
+~/.config/systemd/user/aegis-*.timer
+~/.config/systemd/user/aegis-*.service
 
 # User-specific scan results
-~/.local/share/garuda-security-suite/
-~/.cache/garuda-security-suite/
+~/.local/share/aegis-security-suite/
+~/.cache/aegis-security-suite/
 
 # IDE specific files
 *.sublime-project

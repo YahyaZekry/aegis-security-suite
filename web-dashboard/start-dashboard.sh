@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Garuda Security Suite Web Dashboard Startup Script
+# Aegis Security Suite Web Dashboard Startup Script
 # This script starts the web dashboard with proper environment setup
 
 set -e
@@ -14,10 +14,10 @@ NC='\033[0m' # No Color
 
 # Script configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DASHBOARD_NAME="Garuda Security Dashboard"
+DASHBOARD_NAME="Aegis Security Dashboard"
 DASHBOARD_PORT="8080"
-PID_FILE="/tmp/garuda-dashboard.pid"
-LOG_FILE="/tmp/garuda-dashboard-startup.log"
+PID_FILE="/tmp/aegis-dashboard.pid"
+LOG_FILE="/tmp/aegis-dashboard-startup.log"
 
 # Security suite home - detect from script location if not set
 if [ -z "${SECURITY_SUITE_HOME:-}" ]; then
@@ -109,10 +109,10 @@ check_dependencies() {
 
 # Function to check security suite installation
 check_security_suite() {
-    print_status "Checking Garuda Security Suite installation..."
+    print_status "Checking Aegis Security Suite installation..."
     
     if [[ ! -d "$SECURITY_SUITE_HOME" ]]; then
-        print_error "Garuda Security Suite not found at $SECURITY_SUITE_HOME"
+        print_error "Aegis Security Suite not found at $SECURITY_SUITE_HOME"
         print_status "Please install the security suite first or set SECURITY_SUITE_HOME environment variable"
         exit 1
     fi
@@ -276,7 +276,7 @@ show_status() {
 
 # Function to show help
 show_help() {
-    echo "Garuda Security Suite Web Dashboard Startup Script"
+    echo "Aegis Security Suite Web Dashboard Startup Script"
     echo ""
     echo "Usage: $0 [COMMAND]"
     echo ""

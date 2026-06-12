@@ -320,7 +320,7 @@ test_session_data_security() {
         "/tmp"
         "/var/tmp"
         "$SECURITY_SUITE_HOME/sessions"
-        "$HOME/.local/share/garuda-sessions"
+        "$HOME/.local/share/aegis-sessions"
     )
     
     for location in "${session_locations[@]}"; do

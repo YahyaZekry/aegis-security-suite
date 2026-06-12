@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Initialize authentication database for Garuda Security Suite
+Initialize authentication database for Aegis Security Suite
 """
 
 import os

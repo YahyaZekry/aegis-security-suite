@@ -1,5 +1,5 @@
 """
-Threat Intelligence API Module for Garuda Security Suite Dashboard
+Threat Intelligence API Module for Aegis Security Suite Dashboard
 Provides threat intelligence, IOC management, and threat feed endpoints
 """
 
@@ -22,7 +22,7 @@ from auth import require_auth, require_role
 threats_bp = Blueprint('threats', __name__, url_prefix='/api/threats')
 
 # Database paths
-THREAT_DB_PATH = os.path.join(os.environ.get('SECURITY_SUITE_HOME', '/opt/garuda-security-suite'), 
+THREAT_DB_PATH = os.path.join(os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite'), 
                               'configs', 'threat_intelligence', 'ioc_database.db')
 
 def get_ioc_database_stats():
@@ -742,7 +742,7 @@ def get_feeds():
 def update_feeds():
     """Update threat feeds"""
     try:
-        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/garuda-security-suite')
+        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
         threat_script = os.path.join(security_home, 'scripts', 'threat-intelligence-v2.sh')
         
         if not os.path.exists(threat_script):
@@ -796,7 +796,7 @@ def scan_ioc():
         data = request.get_json()
         scan_type = data.get('type', 'quick')
         
-        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/garuda-security-suite')
+        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
         threat_script = os.path.join(security_home, 'scripts', 'threat-intelligence-v2.sh')
         
         if not os.path.exists(threat_script):

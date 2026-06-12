@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Garuda Security Suite Web Dashboard Installation Script
+# Aegis Security Suite Web Dashboard Installation Script
 # This script installs and configures the web dashboard
 
 set -e
@@ -14,9 +14,9 @@ NC='\033[0m' # No Color
 
 # Script configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DASHBOARD_NAME="Garuda Security Dashboard"
-DASHBOARD_USER="garuda-dashboard"
-DASHBOARD_SERVICE="garuda-dashboard"
+DASHBOARD_NAME="Aegis Security Dashboard"
+DASHBOARD_USER="aegis-dashboard"
+DASHBOARD_SERVICE="aegis-dashboard"
 
 # Security suite home
 SECURITY_SUITE_HOME="${SECURITY_SUITE_HOME:-$HOME/security-suite}"
@@ -110,7 +110,7 @@ setup_configuration() {
     mkdir -p "$SCRIPT_DIR/config"
     
     # Update configuration with actual paths
-    sed -i "s|/opt/garuda-security-suite|$SECURITY_SUITE_HOME|g" "$SCRIPT_DIR/config/dashboard.conf"
+    sed -i "s|/opt/aegis-security-suite|$SECURITY_SUITE_HOME|g" "$SCRIPT_DIR/config/dashboard.conf"
     
     # Generate secret key
     SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_hex(32))")
@@ -125,7 +125,7 @@ create_systemd_service() {
     
     cat > "/etc/systemd/system/$DASHBOARD_SERVICE.service" << EOF
 [Unit]
-Description=Garuda Security Suite Web Dashboard
+Description=Aegis Security Suite Web Dashboard
 After=network.target
 
 [Service]
@@ -193,10 +193,10 @@ setup_firewall() {
     
     # Check if ufw is available
     if command -v ufw &> /dev/null; then
-        ufw allow 8080/tcp comment "Garuda Dashboard"
+        ufw allow 8080/tcp comment "Aegis Dashboard"
         if [[ "$NGINX_AVAILABLE" == true ]]; then
-            ufw allow 80/tcp comment "Garuda Dashboard HTTP"
-            ufw allow 443/tcp comment "Garuda Dashboard HTTPS"
+            ufw allow 80/tcp comment "Aegis Dashboard HTTP"
+            ufw allow 443/tcp comment "Aegis Dashboard HTTPS"
         fi
         print_success "UFW rules added"
     elif command -v firewall-cmd &> /dev/null; then
@@ -240,7 +240,7 @@ create_desktop_entry() {
     
     cat > "/usr/share/applications/$DASHBOARD_SERVICE.desktop" << EOF
 [Desktop Entry]
-Name=Garuda Security Dashboard
+Name=Aegis Security Dashboard
 Comment=Security monitoring and management dashboard
 Exec=xdg-open http://localhost:8080
 Icon=security
@@ -256,7 +256,8 @@ EOF
 run_tests() {
     print_status "Running dashboard tests..."
     
-    if [[ -f "$SCRIPT_DIR/test-dashboard.py" ]]; then
+    local test_script="$PROJECT_ROOT/tests/test_dashboard.py"
+    if [[ -f "$test_script" ]]; then
         # Start dashboard in background for testing
         sudo -u "$DASHBOARD_USER" "$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/app.py" &
         DASHBOARD_PID=$!
@@ -265,7 +266,7 @@ run_tests() {
         sleep 5
         
         # Run tests
-        if sudo -u "$DASHBOARD_USER" "$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/test-dashboard.py"; then
+        if sudo -u "$DASHBOARD_USER" "$SCRIPT_DIR/venv/bin/python" "$test_script"; then
             print_success "All tests passed"
         else
             print_warning "Some tests failed - check the output above"
@@ -302,7 +303,7 @@ start_dashboard() {
 
 # Function to show help
 show_help() {
-    echo "Garuda Security Suite Web Dashboard Installation Script"
+    echo "Aegis Security Suite Web Dashboard Installation Script"
     echo ""
     echo "Usage: $0 [OPTIONS]"
     echo ""

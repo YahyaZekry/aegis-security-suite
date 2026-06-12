@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Authentication Module for Garuda Security Suite Dashboard
+Authentication Module for Aegis Security Suite Dashboard
 Provides secure user authentication, session management, and role-based access control
 """
 
@@ -145,7 +145,7 @@ def create_default_admin(cursor):
         cursor.execute("""
         INSERT INTO users (username, email, password_hash, salt, role, created_at, password_changed_at, password_reset_required)
         VALUES (?, ?, ?, ?, 'admin', ?, ?, 1)
-        """, ('admin', 'admin@garuda.local', password_hash, salt,
+        """, ('admin', 'admin@aegis.local', password_hash, salt,
                datetime.now().isoformat(), datetime.now().isoformat()))
         
         SecurityLogger.log_security_event('default_admin_created', {

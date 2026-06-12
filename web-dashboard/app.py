@@ -1,5 +1,5 @@
 """
-Optimized Flask Web Dashboard for Garuda Security Suite
+Optimized Flask Web Dashboard for Aegis Security Suite
 Provides web interface with memory management and performance optimizations
 """
 
@@ -61,7 +61,7 @@ def load_config():
     }
     
     try:
-        config_file = os.path.join(os.environ.get('SECURITY_SUITE_HOME', '/opt/garuda-security-suite'),
+        config_file = os.path.join(os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite'),
                                   'web-dashboard', 'config', 'dashboard.conf')
         if os.path.exists(config_file):
             import configparser
@@ -102,9 +102,9 @@ active_connections = 0
 connection_lock = threading.Lock()
 
 # Database paths
-BEHAVIORAL_DB = os.path.join(os.environ.get('SECURITY_SUITE_HOME', '/opt/garuda-security-suite'),
+BEHAVIORAL_DB = os.path.join(os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite'),
                               'configs', 'behavioral_analysis', 'behavioral_data.db')
-AUTH_DB_PATH = os.path.join(os.environ.get('SECURITY_SUITE_HOME', '/opt/garuda-security-suite'),
+AUTH_DB_PATH = os.path.join(os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite'),
                            'configs', 'web-dashboard', 'auth.db')
 
 def get_memory_usage():
@@ -811,7 +811,7 @@ def handle_connect():
                 }, 'WARNING')
                 return False
         
-        emit('status', {'message': 'Connected to Garuda Security Suite'})
+        emit('status', {'message': 'Connected to Aegis Security Suite'})
         SecurityLogger.log_security_event('client_connected', {
             'active_connections': active_connections,
             'session_id': session_id

@@ -2,7 +2,7 @@
 
 ## Security Model
 
-The Garuda Security Suite follows the principle of least privilege and defense in depth to provide comprehensive security protection while maintaining system usability.
+The Aegis Security Suite follows the principle of least privilege and defense in depth to provide comprehensive security protection while maintaining system usability.
 
 ### Core Security Principles
 
@@ -603,14 +603,14 @@ To report security vulnerabilities:
 
 ### Security Team Contact
 
-- **Email**: security@garuda-linux.org
+- **Email**: security@aegis-linux.org
 - **PGP Key**: Available on request
 - **Response Time**: Within 48 hours
 - **Disclosure Policy**: Responsible disclosure
 
 ### Security Resources
 
-- **Security Blog**: https://garuda-linux.org/security
-- **Security Advisories**: https://garuda-linux.org/advisories
-- **Security Documentation**: https://garuda-linux.org/docs/security
-- **Community Forum**: https://forum.garuda-linux.org/
+- **Security Blog**: https://aegis-linux.org/security
+- **Security Advisories**: https://aegis-linux.org/advisories
+- **Security Documentation**: https://aegis-linux.org/docs/security
+- **Community Forum**: https://forum.aegis-linux.org/

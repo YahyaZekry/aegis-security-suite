@@ -1,6 +1,6 @@
 [Unit]
-Description=Garuda Security Suite Memory Monitor
-Documentation=https://github.com/garuda-security-suite/memory-monitor
+Description=Aegis Security Suite Memory Monitor
+Documentation=https://github.com/aegis-security-suite/memory-monitor
 After=network.target
 Wants=network.target
 

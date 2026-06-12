@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the internal APIs and functions used by the Garuda Security Suite. The API is organized into several modules that provide logging, security, scanning, and system management functionality.
+This document describes the internal APIs and functions used by the Aegis Security Suite. The API is organized into several modules that provide logging, security, scanning, and system management functionality.
 
 ## Core Functions
 

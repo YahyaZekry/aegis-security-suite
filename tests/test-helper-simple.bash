@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Simple Test Helper for Garuda Security Suite
+# Simple Test Helper for Aegis Security Suite
 
 # Global test variables
-export TEST_DIR="/tmp/garuda-security-test"
+export TEST_DIR="/tmp/aegis-security-test"
 export TEST_LOGS_DIR="$TEST_DIR/logs"
 export TEST_CONFIG_DIR="$TEST_DIR/configs"
 export SCRIPT_DIR="$(dirname "$0")/.."

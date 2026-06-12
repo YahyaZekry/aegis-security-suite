@@ -3,7 +3,7 @@
 ## System Requirements
 
 ### Minimum Requirements
-- **Operating System**: Garuda Linux or Arch-based distribution
+- **Operating System**: Aegis Linux or Arch-based distribution
 - **Bash Version**: 4.0 or higher
 - **Systemd**: For automated scheduling (recommended)
 - **Sudo Access**: For security tool installation and operations
@@ -11,7 +11,7 @@
 - **RAM**: 1GB minimum (2GB recommended)
 
 ### Recommended Requirements
-- **Operating System**: Latest Garuda Linux release
+- **Operating System**: Latest Aegis Linux release
 - **Bash Version**: 5.0 or higher
 - **Systemd**: Latest version with user services support
 - **Sudo Access**: Configured with timeout and lecture disabled
@@ -31,29 +31,29 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/YahyaZekry/garuda-security-suite.git
-cd garuda-security-suite
+git clone https://github.com/YahyaZekry/aegis-security-suite.git
+cd aegis-security-suite
 
 # Or download and extract
-wget https://github.com/YahyaZekry/garuda-security-suite/archive/main.zip
+wget https://github.com/YahyaZekry/aegis-security-suite/archive/main.zip
 unzip main.zip
-cd garuda-security-suite-main
+cd aegis-security-suite-main
 ```
 
 ### 2. Run Setup Script
 
 ```bash
 # Make setup script executable
-chmod +x setup-security-suite.sh
+chmod +x setup-aegis.sh
 
 # Run interactive setup
-./setup-security-suite.sh
+./setup-aegis.sh
 
 # Or run with default settings
-./setup-security-suite.sh --defaults
+./setup-aegis.sh --defaults
 
 # Or run non-interactive setup
-./setup-security-suite.sh --non-interactive --defaults
+./setup-aegis.sh --non-interactive --defaults
 ```
 
 ### 3. Follow Configuration Prompts
@@ -340,7 +340,7 @@ To install to a custom directory:
 export SECURITY_SUITE_HOME="$HOME/security-suite"
 
 # Run setup with custom path
-./setup-security-suite.sh --install-dir "$SECURITY_SUITE_HOME"
+./setup-aegis.sh --install-dir "$SECURITY_SUITE_HOME"
 ```
 
 #### Alternative: Service Template Processing
@@ -374,7 +374,7 @@ MONTHLY_TIME="04:00"
 EOF
 
 # Run silent installation
-./setup-security-suite.sh --config install-config.conf --silent
+./setup-aegis.sh --config install-config.conf --silent
 ```
 
 ### Development Installation
@@ -383,8 +383,8 @@ For developers and testers:
 
 ```bash
 # Clone development branch
-git clone -b develop https://github.com/YahyaZekry/garuda-security-suite.git
-cd garuda-security-suite
+git clone -b develop https://github.com/YahyaZekry/aegis-security-suite.git
+cd aegis-security-suite
 
 # Install development dependencies
 sudo pacman -S bats shellcheck
@@ -393,7 +393,7 @@ sudo pacman -S bats shellcheck
 ./tests/run-all-tests.sh
 
 # Install in development mode
-./setup-security-suite.sh --development
+./setup-aegis.sh --development
 ```
 
 ## Troubleshooting
@@ -623,7 +623,7 @@ systemctl --user stop security-monthly-scan.timer
 git pull origin main
 
 # Run upgrade script
-./setup-security-suite.sh --upgrade
+./setup-aegis.sh --upgrade
 
 # Restart services
 systemctl --user start security-daily-scan.timer
@@ -638,7 +638,7 @@ systemctl --user start security-monthly-scan.timer
 $SECURITY_SUITE_HOME/scripts/export-config.sh > current-config.txt
 
 # Install new version
-./setup-security-suite.sh --fresh-install
+./setup-aegis.sh --fresh-install
 
 # Import configuration
 $SECURITY_SUITE_HOME/scripts/import-config.sh current-config.txt
@@ -703,15 +703,15 @@ rm -rf ~/security-suite/logs
 
 ### Getting Help
 
-- **Documentation**: [docs/](https://github.com/YahyaZekry/garuda-security-suite/tree/main/docs)
-- **Issues**: [GitHub Issues](https://github.com/YahyaZekry/garuda-security-suite/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/YahyaZekry/garuda-security-suite/discussions)
-- **Wiki**: [GitHub Wiki](https://github.com/YahyaZekry/garuda-security-suite/wiki)
+- **Documentation**: [docs/](https://github.com/YahyaZekry/aegis-security-suite/tree/main/docs)
+- **Issues**: [GitHub Issues](https://github.com/YahyaZekry/aegis-security-suite/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/YahyaZekry/aegis-security-suite/discussions)
+- **Wiki**: [GitHub Wiki](https://github.com/YahyaZekry/aegis-security-suite/wiki)
 
 ### Contributing
 
-- **Contributing Guide**: [CONTRIBUTING.md](https://github.com/YahyaZekry/garuda-security-suite/blob/main/CONTRIBUTING.md)
-- **Code of Conduct**: [CODE_OF_CONDUCT.md](https://github.com/YahyaZekry/garuda-security-suite/blob/main/CODE_OF_CONDUCT.md)
+- **Contributing Guide**: [CONTRIBUTING.md](https://github.com/YahyaZekry/aegis-security-suite/blob/main/CONTRIBUTING.md)
+- **Code of Conduct**: [CODE_OF_CONDUCT.md](https://github.com/YahyaZekry/aegis-security-suite/blob/main/CODE_OF_CONDUCT.md)
 - **Development Setup**: See [Development Installation](#development-installation)
 
 ### Reporting Issues
@@ -721,7 +721,7 @@ When reporting issues, please include:
 1. **System Information**
    ```bash
    uname -a
-   pacman -Q garuda-security-suite
+   pacman -Q aegis-security-suite
    ```
 
 2. **Configuration**

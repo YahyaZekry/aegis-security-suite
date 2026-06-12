@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-API Key Management Module for Garuda Security Suite Dashboard
+API Key Management Module for Aegis Security Suite Dashboard
 Provides API key creation, management, and authentication endpoints
 """
 

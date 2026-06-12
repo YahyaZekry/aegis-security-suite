@@ -40,7 +40,7 @@ teardown() {
     setup_test_environment
     
     # Create mock setup script that sets permissions
-    cat > "$TEST_DIR/setup-security-suite.sh" << 'EOF'
+    cat > "$TEST_DIR/setup-aegis.sh" << 'EOF'
 #!/bin/bash
 # Mock Setup Script with File Permissions
 
@@ -75,10 +75,10 @@ echo "Setup completed"
 exit 0
 EOF
     
-    chmod +x "$TEST_DIR/setup-security-suite.sh"
+    chmod +x "$TEST_DIR/setup-aegis.sh"
     
     # Run setup
-    run "$TEST_DIR/setup-security-suite.sh"
+    run "$TEST_DIR/setup-aegis.sh"
     
     [ "$status" -eq 0 ]
     

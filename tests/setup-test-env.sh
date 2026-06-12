@@ -1,5 +1,5 @@
 #!/bin/bash
-# Test Environment Setup Script for Garuda Security Suite
+# Test Environment Setup Script for Aegis Security Suite
 # Installs test dependencies and configures testing environment
 
 set -euo pipefail
@@ -593,7 +593,7 @@ EOF
 
 # Main execution
 main() {
-    log_header "Garuda Security Suite Test Environment Setup"
+    log_header "Aegis Security Suite Test Environment Setup"
     log_info "Setting up test environment for: $PROJECT_ROOT"
     
     # Check sudo access
@@ -651,7 +651,7 @@ main() {
 # Handle command line arguments
 case "${1:-}" in
     --help|-h)
-        echo "Garuda Security Suite Test Environment Setup"
+        echo "Aegis Security Suite Test Environment Setup"
         echo ""
         echo "Usage: $0 [OPTIONS]"
         echo ""
@@ -660,7 +660,7 @@ case "${1:-}" in
         echo "  --no-security-tools      Skip installation of security tools (use mocks only)"
         echo ""
         echo "This script will install BATS, Shellcheck, and security tools"
-        echo "required for testing the Garuda Security Suite."
+        echo "required for testing the Aegis Security Suite."
         exit 0
         ;;
     *)

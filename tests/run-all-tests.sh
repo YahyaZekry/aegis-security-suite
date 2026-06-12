@@ -1,5 +1,5 @@
 #!/bin/bash
-# Test Runner Script for Garuda Security Suite
+# Test Runner Script for Aegis Security Suite
 # Executes all test suites and generates comprehensive reports
 
 set -euo pipefail
@@ -209,7 +209,7 @@ generate_coverage_report() {
     log_header "Generating Coverage Report"
     
     cat > "$COVERAGE_FILE" << EOF
-=== Garuda Security Suite Test Coverage Report ===
+=== Aegis Security Suite Test Coverage Report ===
 Generated: $(date)
 Project: $PROJECT_ROOT
 
@@ -255,7 +255,7 @@ generate_html_report() {
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Garuda Security Suite Test Report</title>
+    <title>Aegis Security Suite Test Report</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
         .header { background-color: #f0f0f0; padding: 20px; border-radius: 5px; }
@@ -272,14 +272,14 @@ generate_html_report() {
 </head>
 <body>
     <div class="header">
-        <h1>Garuda Security Suite Test Report</h1>
+        <h1>Aegis Security Suite Test Report</h1>
         <p>Generated: $(date)</p>
         <p>Project: $PROJECT_ROOT</p>
     </div>
     
     <div class="summary">
         <h2>Test Summary</h2>
-        <p>This report contains the results of comprehensive testing for the Garuda Security Suite.</p>
+        <p>This report contains the results of comprehensive testing for the Aegis Security Suite.</p>
     </div>
 EOF
     
@@ -341,14 +341,14 @@ EOF
 
 # Main execution
 main() {
-    log_header "Garuda Security Suite Test Runner"
+    log_header "Aegis Security Suite Test Runner"
     log_info "Starting comprehensive test execution..."
     log_info "Project root: $PROJECT_ROOT"
     log_info "Test results directory: $TEST_RESULTS_DIR"
     
     # Initialize report file
     cat > "$REPORT_FILE" << EOF
-=== Garuda Security Suite Test Report ===
+=== Aegis Security Suite Test Report ===
 Generated: $(date)
 Project: $PROJECT_ROOT
 Test Runner: $0
@@ -399,7 +399,7 @@ EOF
 # Handle command line arguments
 case "${1:-}" in
     --help|-h)
-        echo "Garuda Security Suite Test Runner"
+        echo "Aegis Security Suite Test Runner"
         echo ""
         echo "Usage: $0 [OPTIONS]"
         echo ""

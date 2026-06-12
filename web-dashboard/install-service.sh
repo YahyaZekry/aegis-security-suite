@@ -1,5 +1,5 @@
 #!/bin/bash
-# Garuda Security Suite Dashboard Service Installation Script
+# Aegis Security Suite Dashboard Service Installation Script
 # Installs the dashboard as a systemd service
 
 set -e
@@ -13,7 +13,7 @@ NC='\033[0m' # No Color
 
 # Script configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SERVICE_NAME="garuda-dashboard"
+SERVICE_NAME="aegis-dashboard"
 SERVICE_FILE="$SERVICE_NAME.service"
 SYSTEMD_DIR="/etc/systemd/system"
 
@@ -90,7 +90,7 @@ validate_installation() {
 create_service_user() {
     print_status "Creating service user..."
     
-    # Use current user instead of creating garuda system user
+    # Use current user instead of creating aegis system user
     print_status "Using current user: $CURRENT_USER"
     
     # Set proper ownership for security suite home
@@ -119,7 +119,7 @@ install_service() {
     cp "$SCRIPT_DIR/$SERVICE_FILE" "$SYSTEMD_DIR/"
     
     # Update service file with actual paths
-    sed -i "s|/opt/garuda-security-suite|$SECURITY_SUITE_HOME|g" "$SYSTEMD_DIR/$SERVICE_FILE"
+    sed -i "s|/opt/aegis-security-suite|$SECURITY_SUITE_HOME|g" "$SYSTEMD_DIR/$SERVICE_FILE"
     
     # Reload systemd
     systemctl daemon-reload
@@ -136,7 +136,7 @@ configure_service() {
     
     # Create environment file for service
     cat > "/etc/default/$SERVICE_NAME" << EOF
-# Garuda Security Suite Dashboard Environment Configuration
+# Aegis Security Suite Dashboard Environment Configuration
 SECURITY_SUITE_HOME="$SECURITY_SUITE_HOME"
 FLASK_ENV=production
 FLASK_APP=app.py
@@ -154,7 +154,7 @@ setup_firewall() {
     # Check if firewall is active
     if command -v ufw >/dev/null 2>&1 && ufw status | grep -q "Status: active"; then
         # UFW is active
-        ufw allow 8080/tcp comment "Garuda Security Dashboard"
+        ufw allow 8080/tcp comment "Aegis Security Dashboard"
         print_success "Firewall configured (UFW)"
     elif command -v firewall-cmd >/dev/null 2>&1 && systemctl is-active --quiet firewalld; then
         # firewalld is active
@@ -239,7 +239,7 @@ uninstall_service() {
 
 # Function to show help
 show_help() {
-    echo "Garuda Security Suite Dashboard Service Installation Script"
+    echo "Aegis Security Suite Dashboard Service Installation Script"
     echo ""
     echo "Usage: $0 [COMMAND]"
     echo ""

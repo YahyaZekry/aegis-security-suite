@@ -1,8 +1,8 @@
 #!/bin/bash
-# Simple validation script for Garuda Security Suite
+# Simple validation script for Aegis Security Suite
 
 echo "========================================"
-echo "Garuda Security Suite Simple Validation"
+echo "Aegis Security Suite Simple Validation"
 echo "========================================"
 
 # Test 1: Configuration files
@@ -83,7 +83,7 @@ done
 # Test 7: Service file
 echo ""
 echo "Testing service file..."
-if [ -f "./web-dashboard/garuda-dashboard.service" ]; then
+if [ -f "./web-dashboard/aegis-dashboard.service" ]; then
     echo "✓ Systemd service file exists"
 else
     echo "✗ Systemd service file missing"
