@@ -1508,6 +1508,118 @@ function getCurrentUserInfo() {
     };
 }
 
+/**
+ * Show a status message toast notification
+ */
+function showStatusMessage(message, type) {
+    const container = document.getElementById('notificationList');
+    if (container) {
+        const icons = {
+            'success': 'fa-check-circle',
+            'error': 'fa-exclamation-circle',
+            'warning': 'fa-exclamation-triangle',
+            'info': 'fa-info-circle'
+        };
+        const item = document.createElement('div');
+        item.className = 'notification-item';
+        item.innerHTML = `<i class="fas ${icons[type] || icons.info} me-2"></i>${message}`;
+        container.prepend(item);
+        
+        // Update badge count
+        const badge = document.getElementById('notificationCount');
+        if (badge) {
+            const count = parseInt(badge.textContent) + 1;
+            badge.textContent = count;
+            badge.style.display = count > 0 ? 'inline' : 'none';
+        }
+        
+        setTimeout(() => item.remove(), CONFIG.notificationTimeout || 8000);
+    } else {
+        console.log(`[${type}] ${message}`);
+    }
+}
+
+/**
+ * Show error status message
+ */
+function showErrorMessage(message) {
+    showStatusMessage(message, 'error');
+}
+
+/**
+ * Auto-refresh dashboard data periodically
+ */
+function setupAutoRefresh() {
+    setInterval(() => {
+        if (!document.hidden) {
+            loadSystemStatus();
+        }
+    }, CONFIG.updateInterval || 30000);
+}
+
+/**
+ * Show connection status indicator
+ */
+function showConnectionStatus(status, type) {
+    const indicator = document.getElementById('connection-status');
+    if (indicator) {
+        indicator.textContent = status;
+        indicator.className = `text-${type}`;
+    }
+}
+
+/**
+ * Initialize Bootstrap tooltips
+ */
+function initializeTooltips() {
+    const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    tooltips.forEach(el => {
+        try { new bootstrap.Tooltip(el); } catch (e) {}
+    });
+}
+
+/**
+ * Real-time updates handler (stub for page-specific implementations)
+ */
+function startRealTimeUpdates() {
+    console.log('Real-time updates initialized');
+}
+
+/**
+ * Animate value changes in the UI
+ */
+function animateValueChanges(data) {
+    // Handled by animateValue() calls in updateSystemMetrics
+}
+
+/**
+ * Update threat level indicator
+ */
+function updateThreatLevel(level) {
+    const element = document.getElementById('threat-level');
+    if (element) {
+        element.textContent = level || 'Low';
+    }
+}
+
+/**
+ * Show scan progress indicator
+ */
+function showScanProgress(percent) {
+    const progress = document.getElementById('scan-progress');
+    if (progress) {
+        progress.style.width = `${percent}%`;
+        progress.setAttribute('aria-valuenow', percent);
+    }
+}
+
+/**
+ * Page-specific data loader stubs (implemented in template scripts)
+ */
+function loadNotifications() {}
+function loadIncidents() {}
+function loadThreatData() {}
+
 // Export global functions for use in HTML
 window.toggleMonitoring = toggleMonitoring;
 window.startMonitoring = startMonitoring;
