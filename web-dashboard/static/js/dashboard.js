@@ -64,7 +64,39 @@ function initializeDashboard() {
     // Initialize service worker for offline support
     initializeServiceWorker();
     
+    // Initialize session expiry timer
+    initializeSessionTimer();
+    
     console.log('✅ Dashboard initialized successfully');
+}
+
+/**
+ * Track session expiry and warn before timeout
+ */
+function initializeSessionTimer() {
+    if (!window.sessionStorage) return;
+    
+    const SESSION_DURATION = 23 * 60 * 60 * 1000; // 23 hours in ms
+    const WARNING_TIME = 2 * 60 * 1000; // 2 minutes before warning
+    
+    let sessionStart = sessionStorage.getItem('sessionStart');
+    if (!sessionStart) {
+        sessionStart = Date.now().toString();
+        sessionStorage.setItem('sessionStart', sessionStart);
+    }
+    sessionStart = parseInt(sessionStart, 10);
+    
+    setInterval(() => {
+        const elapsed = Date.now() - sessionStart;
+        const remaining = SESSION_DURATION - elapsed;
+        
+        if (remaining <= 0) {
+            showStatusMessage('Session expired. Please log in again.', 'danger');
+            setTimeout(() => window.location.href = '/logout', 5000);
+        } else if (remaining <= WARNING_TIME) {
+            showStatusMessage('Your session will expire in 2 minutes. Save your work.', 'warning');
+        }
+    }, 60000); // Check every minute
 }
 
 /**
@@ -96,8 +128,8 @@ function setupEventListeners() {
     // Visibility change handler
     document.addEventListener('visibilitychange', handleVisibilityChange);
     
-    // Context menu prevention
-    document.addEventListener('contextmenu', preventContextMenu);
+    // Context menu prevention (disabled - interferes with dev tools)
+    // document.addEventListener('contextmenu', preventContextMenu);
     
     // Keyboard navigation
     document.addEventListener('keydown', handleKeyboardNavigation);
@@ -1121,16 +1153,7 @@ function handleVisibilityChange() {
     }
 }
 
-function preventContextMenu(e) {
-    // Allow context menu on specific elements
-    const allowedElements = ['input', 'textarea', 'a'];
-    const target = e.target;
-    
-    if (!allowedElements.includes(target.tagName.toLowerCase())) {
-        e.preventDefault();
-        return false;
-    }
-}
+
 
 function handleKeyboardNavigation(e) {
     // Handle keyboard navigation for accessibility

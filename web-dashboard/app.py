@@ -294,7 +294,9 @@ def after_request(response):
 @app.errorhandler(404)
 def not_found(error):
     """Handle 404 errors"""
-    return jsonify({'error': 'Resource not found'}), 404
+    if request.accept_mimetypes.accept_json and not request.accept_mimetypes.accept_html:
+        return jsonify({'error': 'Resource not found'}), 404
+    return render_template('404.html'), 404
 
 @app.errorhandler(500)
 def internal_error(error):
@@ -305,12 +307,24 @@ def internal_error(error):
         'memory_usage': get_memory_usage()
     }, 'ERROR')
     
-    return jsonify({'error': 'Internal server error'}), 500
+    if request.accept_mimetypes.accept_json and not request.accept_mimetypes.accept_html:
+        return jsonify({'error': 'Internal server error'}), 500
+    return render_template('500.html'), 500
 
 @app.errorhandler(413)
 def too_large(error):
     """Handle file too large errors"""
-    return jsonify({'error': 'File too large'}), 413
+    if request.accept_mimetypes.accept_json and not request.accept_mimetypes.accept_html:
+        return jsonify({'error': 'File too large'}), 413
+    return render_template('500.html'), 413
+
+@app.context_processor
+def inject_globals():
+    """Inject global variables into all templates"""
+    return {
+        'generate_csrf_token': generate_csrf_token,
+        'now': datetime
+    }
 
 # Routes
 @app.route('/login', methods=['GET', 'POST'])
@@ -501,6 +515,7 @@ def logout():
     session_id = session.get('session_id')
     if session_id:
         destroy_session(session_id)
+    flash('You have been logged out successfully', 'success')
     session.clear()
     return redirect(url_for('login'))
 

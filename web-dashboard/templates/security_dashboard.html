@@ -10,12 +10,12 @@
         <div class="col-12">
             <div class="card border-left border-primary">
                 <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                        <div class="row g-0 align-items-center">
+                        <div class="col me-2">
+                            <div class="text-xs fw-bold text-primary text-uppercase mb-1">
                                 Security Status
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="security-status">
+                            <div class="h5 mb-0 fw-bold text-gray-800" id="security-status">
                                 Loading...
                             </div>
                         </div>
@@ -33,12 +33,12 @@
         <div class="col-xl-3 col-md-6 mb-4">
             <div class="card border-left-warning shadow h-100 py-2">
                 <div class="card-body">
-                    <div class="row no-gutters align-items-center">
+                        <div class="row g-0 align-items-center">
                         <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            <div class="text-xs fw-bold text-warning text-uppercase mb-1">
                                 Unacknowledged Alerts
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="unacknowledged-alerts">
+                            <div class="h5 mb-0 fw-bold text-gray-800" id="unacknowledged-alerts">
                                 0
                             </div>
                         </div>
@@ -53,12 +53,12 @@
         <div class="col-xl-3 col-md-6 mb-4">
             <div class="card border-left-info shadow h-100 py-2">
                 <div class="card-body">
-                    <div class="row no-gutters align-items-center">
+                        <div class="row g-0 align-items-center">
                         <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            <div class="text-xs fw-bold text-info text-uppercase mb-1">
                                 Recent Events
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="recent-events">
+                            <div class="h5 mb-0 fw-bold text-gray-800" id="recent-events">
                                 0
                             </div>
                         </div>
@@ -73,12 +73,12 @@
         <div class="col-xl-3 col-md-6 mb-4">
             <div class="card border-left-success shadow h-100 py-2">
                 <div class="card-body">
-                    <div class="row no-gutters align-items-center">
+                        <div class="row g-0 align-items-center">
                         <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            <div class="text-xs fw-bold text-success text-uppercase mb-1">
                                 High Risk Findings
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="high-risk-findings">
+                            <div class="h5 mb-0 fw-bold text-gray-800" id="high-risk-findings">
                                 0
                             </div>
                         </div>
@@ -93,12 +93,12 @@
         <div class="col-xl-3 col-md-6 mb-4">
             <div class="card border-left-danger shadow h-100 py-2">
                 <div class="card-body">
-                    <div class="row no-gutters align-items-center">
+                        <div class="row g-0 align-items-center">
                         <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                            <div class="text-xs fw-bold text-danger text-uppercase mb-1">
                                 Active Scans
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="active-scans">
+                            <div class="h5 mb-0 fw-bold text-gray-800" id="active-scans">
                                 0
                             </div>
                         </div>
@@ -117,12 +117,12 @@
         <div class="col-lg-6 mb-4">
             <div class="card shadow">
                 <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                    <h6 class="m-0 font-weight-bold text-primary">Security Alerts</h6>
+                    <h6 class="m-0 fw-bold text-primary">Security Alerts</h6>
                     <div class="dropdown no-arrow">
-                        <a class="dropdown-toggle" href="#" role="button" id="alertDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <a class="dropdown-toggle" href="#" role="button" id="alertDropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                             <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
                         </a>
-                        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="alertDropdown">
+                        <div class="dropdown-menu dropdown-menu-end shadow animated--fade-in" aria-labelledby="alertDropdown">
                             <a class="dropdown-item" href="#" onclick="refreshAlerts()">Refresh</a>
                             <a class="dropdown-item" href="#" onclick="acknowledgeAllAlerts()">Acknowledge All</a>
                         </div>
@@ -154,12 +154,12 @@
         <div class="col-lg-6 mb-4">
             <div class="card shadow">
                 <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                    <h6 class="m-0 font-weight-bold text-primary">Security Events</h6>
+                    <h6 class="m-0 fw-bold text-primary">Security Events</h6>
                     <div class="dropdown no-arrow">
-                        <a class="dropdown-toggle" href="#" role="button" id="eventDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <a class="dropdown-toggle" href="#" role="button" id="eventDropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                             <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
                         </a>
-                        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="eventDropdown">
+                        <div class="dropdown-menu dropdown-menu-end shadow animated--fade-in" aria-labelledby="eventDropdown">
                             <a class="dropdown-item" href="#" onclick="refreshEvents()">Refresh</a>
                             <a class="dropdown-item" href="#" onclick="filterEvents('high')">High Severity</a>
                             <a class="dropdown-item" href="#" onclick="filterEvents('medium')">Medium Severity</a>
@@ -195,12 +195,12 @@
         <div class="col-12 mb-4">
             <div class="card shadow">
                 <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                    <h6 class="m-0 font-weight-bold text-primary">Recent Security Scans</h6>
+                    <h6 class="m-0 fw-bold text-primary">Recent Security Scans</h6>
                     <div class="dropdown no-arrow">
-                        <a class="dropdown-toggle" href="#" role="button" id="scanDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <a class="dropdown-toggle" href="#" role="button" id="scanDropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                             <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
                         </a>
-                        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="scanDropdown">
+                        <div class="dropdown-menu dropdown-menu-end shadow animated--fade-in" aria-labelledby="scanDropdown">
                             <a class="dropdown-item" href="#" onclick="refreshScans()">Refresh</a>
                             <a class="dropdown-item" href="#" onclick="startNewScan()">Start New Scan</a>
                         </div>
@@ -300,7 +300,7 @@ function updateSecurityAlerts() {
     tbody.innerHTML = alerts.map(alert => `
         <tr>
             <td>
-                <span class="badge badge-${getSeverityClass(alert.severity)}">${alert.severity.toUpperCase()}</span>
+                <span class="badge bg-${getSeverityClass(alert.severity)}">${alert.severity.toUpperCase()}</span>
             </td>
             <td>${alert.title}</td>
             <td>${formatDate(alert.timestamp)}</td>
@@ -326,7 +326,7 @@ function updateSecurityEvents() {
         <tr>
             <td>${event.event_type}</td>
             <td>
-                <span class="badge badge-${getSeverityClass(event.severity)}">${event.severity.toUpperCase()}</span>
+                <span class="badge bg-${getSeverityClass(event.severity)}">${event.severity.toUpperCase()}</span>
             </td>
             <td>${event.title}</td>
             <td>${formatDate(event.timestamp)}</td>
@@ -347,7 +347,7 @@ function updateSecurityScans() {
         <tr>
             <td>${scan.scan_type}</td>
             <td>
-                <span class="badge badge-${getStatusClass(scan.status)}">${scan.status.toUpperCase()}</span>
+                <span class="badge bg-${getStatusClass(scan.status)}">${scan.status.toUpperCase()}</span>
             </td>
             <td>${formatDate(scan.started_at)}</td>
             <td>${scan.completed_at ? formatDate(scan.completed_at) : 'Running'}</td>

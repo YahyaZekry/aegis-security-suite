@@ -33,6 +33,7 @@
     
     {% block head %}{% endblock %}
     
+    <meta name="csrf-token" content="{{ generate_csrf_token() }}">
     <!-- Theme Color for Mobile Browsers -->
     <meta name="theme-color" content="#1a73e8">
     
@@ -62,7 +63,7 @@
     <nav class="navbar navbar-expand-lg">
         <div class="container-fluid">
             <!-- Mobile Menu Toggle -->
-            <button class="navbar-toggler mobile-menu-toggle" type="button" id="mobileMenuToggle">
+            <button class="navbar-toggler mobile-menu-toggle" type="button" id="mobileMenuToggle" aria-label="Toggle navigation menu">
                 <span class="navbar-toggler-icon">
                     <i class="fas fa-bars"></i>
                 </span>
@@ -118,7 +119,7 @@
                 <ul class="navbar-nav">
                     <!-- Notifications -->
                     <li class="nav-item dropdown">
-                        <a class="nav-link notification-toggle" href="#" role="button" data-bs-toggle="dropdown" id="notificationDropdown">
+                        <a class="nav-link notification-toggle" href="#" role="button" data-bs-toggle="dropdown" id="notificationDropdown" aria-label="Notifications">
                             <i class="fas fa-bell"></i>
                             <span class="notification-badge" id="notificationCount">0</span>
                         </a>
@@ -137,7 +138,7 @@
                     
                     <!-- User Menu -->
                     <li class="nav-item dropdown">
-                        <a class="nav-link user-menu-toggle" href="#" role="button" data-bs-toggle="dropdown" id="userDropdown">
+                        <a class="nav-link user-menu-toggle" href="#" role="button" data-bs-toggle="dropdown" id="userDropdown" aria-label="User menu">
                             <div class="user-avatar">
                                 <i class="fas fa-user"></i>
                             </div>
@@ -185,20 +186,20 @@
                     <h6 class="sidebar-heading">Quick Actions</h6>
                     <ul class="nav flex-column">
                         <li class="nav-item">
-                            <a class="nav-link" href="#" onclick="toggleMonitoring()" id="monitoringToggle">
+                            <a class="nav-link" href="#" onclick="toggleMonitoring()" id="monitoringToggle" aria-label="Toggle real-time monitoring">
                                 <i class="fas fa-play-circle"></i>
                                 <span>Real-time Monitoring</span>
                                 <div class="status-indicator" id="monitoringStatus"></div>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#" onclick="startQuickScan()">
+                            <a class="nav-link" href="#" onclick="startQuickScan()" aria-label="Start quick scan">
                                 <i class="fas fa-shield-virus"></i>
                                 <span>Quick Scan</span>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#" onclick="generateReport()">
+                            <a class="nav-link" href="#" onclick="generateReport()" aria-label="Generate report">
                                 <i class="fas fa-file-alt"></i>
                                 <span>Generate Report</span>
                             </a>
@@ -281,14 +282,12 @@
                     </div>
                     <div class="page-actions">
                         <div class="action-buttons">
-                            <button type="button" class="btn btn-outline" onclick="refreshData()" data-bs-toggle="tooltip" title="Refresh Data">
+                            <button type="button" class="btn btn-outline" onclick="refreshData()" data-bs-toggle="tooltip" title="Refresh Data" aria-label="Refresh dashboard data">
                                 <i class="fas fa-sync-alt"></i>
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
                             </button>
                             <div class="dropdown">
-                                <button type="button" class="btn btn-outline dropdown-toggle" data-bs-toggle="dropdown" data-bs-toggle="tooltip" title="Export Data">
+                                <button type="button" class="btn btn-outline dropdown-toggle" data-bs-toggle="dropdown" data-bs-toggle="tooltip" title="Export Data" aria-label="Export data">
                                     <i class="fas fa-download"></i>
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
                                 </button>
                                 <ul class="dropdown-menu">
                                     <li><a class="dropdown-item" href="#" onclick="exportData('json')">
@@ -302,9 +301,8 @@
                                     </a></li>
                                 </ul>
                             </div>
-                            <button type="button" class="btn btn-outline" onclick="toggleFullscreen()" data-bs-toggle="tooltip" title="Toggle Fullscreen">
+                            <button type="button" class="btn btn-outline" onclick="toggleFullscreen()" data-bs-toggle="tooltip" title="Toggle Fullscreen" aria-label="Toggle fullscreen mode">
                                 <i class="fas fa-expand"></i>
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
                             </button>
                         </div>
                     </div>
@@ -339,7 +337,7 @@
     <footer class="footer">
         <div class="footer-content">
             <div class="footer-section">
-                <p class="footer-text">&copy; 2025 Aegis Security Suite. All rights reserved.</p>
+                <p class="footer-text">&copy; {{ now.now().year }} Aegis Security Suite. All rights reserved.</p>
             </div>
             <div class="footer-section">
                 <div class="footer-info">
@@ -359,7 +357,7 @@
     </footer>
 
     <!-- Theme Toggle Button -->
-    <button class="theme-toggle" id="themeToggle" data-bs-toggle="tooltip" title="Toggle Theme">
+    <button class="theme-toggle" id="themeToggle" data-bs-toggle="tooltip" title="Toggle Theme" aria-label="Toggle dark/light theme">
         <i class="fas fa-moon" id="themeIcon"></i>
     </button>
 
@@ -416,27 +414,16 @@
     
     <!-- Loading Screen Script -->
     <script>
-        // Hide loading screen when page is ready
         window.addEventListener('load', function() {
             const progress = document.getElementById('loading-progress');
             const loadingScreen = document.getElementById('loading-screen');
-            
-            // Simulate loading progress
-            let width = 0;
-            const interval = setInterval(() => {
-                width += 10;
-                progress.style.width = width + '%';
-                
-                if (width >= 100) {
-                    clearInterval(interval);
-                    setTimeout(() => {
-                        loadingScreen.style.opacity = '0';
-                        setTimeout(() => {
-                            loadingScreen.style.display = 'none';
-                        }, 500);
-                    }, 300);
-                }
-            }, 100);
+            if (progress) progress.style.width = '100%';
+            if (loadingScreen) {
+                loadingScreen.style.opacity = '0';
+                setTimeout(() => {
+                    loadingScreen.style.display = 'none';
+                }, 300);
+            }
         });
     </script>
 </body>
