@@ -27,6 +27,8 @@ from api.behavioral import behavioral_bp
 from api.threats import threats_bp
 from api.incidents import incidents_bp
 from api.api_keys import api_keys_bp
+from api.config import config_bp
+from api.scan import scan_bp
 from api.security_monitoring import security_monitoring_bp, start_background_monitoring, stop_background_monitoring
 
 # Create Flask app with optimizations
@@ -36,6 +38,7 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # Disable caching for dynamic content
 app.config['WTF_CSRF_TIME_LIMIT'] = 3600  # CSRF token valid for 1 hour
 app.config['WTF_CSRF_SSL_STRICT'] = True  # Enforce SSL for CSRF
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)  # Default session lifetime
 
 # Initialize CSRF protection
 csrf = CSRFProtect(app)
@@ -379,7 +382,15 @@ def login():
             session['session_id'] = session_id
             session['username'] = auth_result['username']
             session['role'] = auth_result['role']
-            
+
+            # Handle "Remember Me" - extend session lifetime
+            if request.form.get('remember') == '1':
+                session.permanent = True
+                app.permanent_session_lifetime = timedelta(days=30)
+            else:
+                session.permanent = True
+                app.permanent_session_lifetime = timedelta(hours=24)
+
             # Regenerate session ID to prevent session fixation
             session.regenerate()
             
@@ -1162,6 +1173,8 @@ app.register_blueprint(behavioral_bp)
 app.register_blueprint(threats_bp)
 app.register_blueprint(incidents_bp)
 app.register_blueprint(api_keys_bp)
+app.register_blueprint(config_bp)
+app.register_blueprint(scan_bp)
 app.register_blueprint(security_monitoring_bp)
 
 # Start background monitoring

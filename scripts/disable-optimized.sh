@@ -26,8 +26,8 @@ if [ -f "$SCRIPT_DIR/threat-intelligence.sh.backup" ]; then
     mv "$SCRIPT_DIR/threat-intelligence.sh.backup" "$SCRIPT_DIR/threat-intelligence.sh"
 fi
 
-if [ -f "$SCRIPT_DIR/../web-dashboard/app.py.backup" ]; then
-    mv "$SCRIPT_DIR/../web-dashboard/app.py.backup" "$SCRIPT_DIR/../web-dashboard/app.py"
+if [ -f "$SECURITY_SUITE_HOME/web-dashboard/app.py.backup" ]; then
+    mv "$SECURITY_SUITE_HOME/web-dashboard/app.py.backup" "$SECURITY_SUITE_HOME/web-dashboard/app.py"
 fi
 
 # Restart original services

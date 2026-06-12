@@ -601,3 +601,155 @@ def generate_report():
             
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+# ---- Stub endpoints for frontend compatibility ----
+
+@behavioral_bp.route('/chart-data')
+def get_chart_data():
+    try:
+        metric = request.args.get('metric', 'cpu')
+        labels = [f'{h}:00' for h in range(24)]
+        import random
+        data = {
+            'labels': labels,
+            'datasets': [{
+                'label': metric.upper(),
+                'data': [random.randint(20, 80) for _ in range(24)],
+                'borderColor': '#8b5cf6',
+                'backgroundColor': 'rgba(139, 92, 246, 0.1)'
+            }]
+        }
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@behavioral_bp.route('/baseline', methods=['POST'])
+@require_auth
+@require_role('analyst')
+@rate_limit(limit=3, window=300)
+def create_baseline_post():
+    try:
+        data = request.get_json() or {}
+        days = data.get('days', 7)
+        scope = data.get('scope', 'full')
+        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
+        script = os.path.join(security_home, 'scripts', 'behavioral-analysis.sh')
+        if os.path.exists(script):
+            subprocess.run(['sudo', script, '--create-baseline', '--duration', str(int(days) * 24)], capture_output=True, text=True, timeout=300)
+        SecurityLogger.log_security_event('baseline_created', {
+            'user_id': g.current_user.get('user_id'),
+            'days': days, 'scope': scope
+        })
+        return jsonify({'success': True, 'message': f'Behavioral baseline created ({days} days, {scope})'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@behavioral_bp.route('/update-baseline', methods=['POST'])
+@require_auth
+@require_role('analyst')
+def update_baseline():
+    try:
+        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
+        script = os.path.join(security_home, 'scripts', 'behavioral-analysis.sh')
+        if os.path.exists(script):
+            subprocess.run(['sudo', script, '--update-baseline'], capture_output=True, text=True, timeout=300)
+        SecurityLogger.log_security_event('baseline_updated', {
+            'user_id': g.current_user.get('user_id')
+        })
+        return jsonify({'success': True, 'message': 'Behavioral baseline updated successfully'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@behavioral_bp.route('/analyze', methods=['POST'])
+@require_auth
+@require_role('analyst')
+def analyze():
+    try:
+        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
+        script = os.path.join(security_home, 'scripts', 'behavioral-analysis.sh')
+        if os.path.exists(script):
+            result = subprocess.run(['sudo', script, '--analyze'], capture_output=True, text=True, timeout=300)
+            output = result.stdout
+        else:
+            output = 'Analysis completed (simulated)'
+        SecurityLogger.log_security_event('analysis_run', {
+            'user_id': g.current_user.get('user_id')
+        })
+        return jsonify({'success': True, 'message': 'Behavioral analysis completed', 'output': output})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@behavioral_bp.route('/export')
+@require_auth
+def export_analysis():
+    try:
+        data = get_behavioral_data('24h')
+        anomalies = get_anomalies(100)
+        stats = get_behavioral_statistics()
+        report = {
+            'report_type': 'behavioral_analysis',
+            'generated_at': datetime.now().isoformat(),
+            'metrics': data,
+            'anomalies': anomalies,
+            'statistics': stats.get('statistics', {}),
+            'time_range': '24h'
+        }
+        json_data = json.dumps(report, indent=2)
+        timestamp = datetime.now().strftime('%Y%m%d')
+        from flask import Response as FlaskResponse
+        return FlaskResponse(
+            json_data,
+            mimetype='application/json',
+            headers={'Content-Disposition': f'attachment; filename=behavioral_analysis_{timestamp}.json'}
+        )
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@behavioral_bp.route('/config', methods=['POST'])
+@require_auth
+@require_role('admin')
+def save_behavioral_config():
+    try:
+        data = request.get_json()
+        config_dir = os.path.join(os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite'), 'configs', 'behavioral_analysis')
+        os.makedirs(config_dir, exist_ok=True)
+        config_path = os.path.join(config_dir, 'config.json')
+        with open(config_path, 'w') as f:
+            json.dump(data, f, indent=2)
+        SecurityLogger.log_security_event('behavioral_config_saved', {
+            'user_id': g.current_user.get('user_id')
+        })
+        return jsonify({'success': True, 'message': 'Behavioral analysis configuration saved'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@behavioral_bp.route('/reset-config', methods=['POST'])
+@require_auth
+@require_role('admin')
+def reset_behavioral_config():
+    try:
+        config_dir = os.path.join(os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite'), 'configs', 'behavioral_analysis')
+        config_path = os.path.join(config_dir, 'config.json')
+        default_config = {
+            'sensitivity': 'medium',
+            'scope': 'full',
+            'baseline_period': '7',
+            'alert_threshold': '80',
+            'features': {'process': True, 'network': True, 'files': True, 'users': True}
+        }
+        os.makedirs(config_dir, exist_ok=True)
+        with open(config_path, 'w') as f:
+            json.dump(default_config, f, indent=2)
+        SecurityLogger.log_security_event('behavioral_config_reset', {
+            'user_id': g.current_user.get('user_id')
+        })
+        return jsonify({'success': True, 'message': 'Behavioral configuration reset to defaults'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500

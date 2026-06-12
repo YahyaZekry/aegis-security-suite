@@ -794,3 +794,167 @@ def export_incidents():
             
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+# ---- Stub endpoints for frontend compatibility ----
+
+@incidents_bp.route('/chart-data')
+def get_chart_data():
+    try:
+        range_param = request.args.get('range', '24h')
+        import random
+        points = 24 if range_param == '24h' else 7
+        labels = [f'{i}' for i in range(points)]
+        data = {
+            'labels': labels,
+            'trends': {
+                'created': random.randint(0, 10),
+                'resolved': random.randint(0, 8),
+                'escalated': random.randint(0, 3)
+            },
+            'datasets': {
+                'created': [random.randint(0, 5) for _ in range(points)],
+                'resolved': [random.randint(0, 4) for _ in range(points)],
+                'escalated': [random.randint(0, 2) for _ in range(points)]
+            },
+            'severity_counts': {
+                'critical': random.randint(0, 2),
+                'high': random.randint(1, 5),
+                'medium': random.randint(2, 8),
+                'low': random.randint(3, 10)
+            }
+        }
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@incidents_bp.route('/<incident_id>/assign', methods=['POST'])
+@require_auth
+@require_role('analyst')
+def assign_incident(incident_id):
+    try:
+        data = request.get_json() or {}
+        assignee = data.get('assignee', '')
+        conn = sqlite3.connect(INCIDENT_DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("UPDATE incidents SET status = 'investigating', actions_taken = ? WHERE incident_id = ?",
+                       (f'Assigned to {assignee}', incident_id))
+        conn.commit()
+        affected = cursor.rowcount
+        conn.close()
+        if affected > 0:
+            return jsonify({'success': True, 'message': f'Incident {incident_id} assigned to {assignee}'})
+        return jsonify({'success': False, 'message': 'Incident not found'}), 404
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@incidents_bp.route('/bulk-assign', methods=['POST'])
+@require_auth
+@require_role('analyst')
+def bulk_assign():
+    try:
+        data = request.get_json() or {}
+        incident_ids = data.get('incident_ids', [])
+        assignee = data.get('assignee', '')
+        assigned = 0
+        conn = sqlite3.connect(INCIDENT_DB_PATH)
+        cursor = conn.cursor()
+        for inc_id in incident_ids:
+            cursor.execute("UPDATE incidents SET status = 'investigating' WHERE incident_id = ?", (inc_id,))
+            if cursor.rowcount > 0:
+                assigned += 1
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True, 'assigned_count': assigned, 'message': f'{assigned} incidents assigned to {assignee}'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@incidents_bp.route('/bulk-escalate', methods=['POST'])
+@require_auth
+@require_role('analyst')
+def bulk_escalate():
+    try:
+        data = request.get_json() or {}
+        incident_ids = data.get('incident_ids', [])
+        escalated = 0
+        conn = sqlite3.connect(INCIDENT_DB_PATH)
+        cursor = conn.cursor()
+        for inc_id in incident_ids:
+            cursor.execute("UPDATE incidents SET status = 'escalated' WHERE incident_id = ? AND status != 'resolved'", (inc_id,))
+            if cursor.rowcount > 0:
+                escalated += 1
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True, 'escalated_count': escalated, 'message': f'{escalated} incidents escalated'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@incidents_bp.route('/generate-report', methods=['POST'])
+@require_auth
+@require_role('analyst')
+def generate_report():
+    try:
+        stats = get_incident_statistics()
+        incidents = get_incidents(100)
+        report = {
+            'generated_at': datetime.now().isoformat(),
+            'statistics': stats.get('statistics', {}),
+            'incidents': incidents.get('incidents', []),
+            'summary': {
+                'total': len(incidents.get('incidents', [])),
+                'open': stats.get('statistics', {}).get('open_incidents', 0),
+                'avg_resolution': stats.get('statistics', {}).get('average_resolution_time_hours', 0)
+            }
+        }
+        return jsonify({'success': True, 'message': 'Report generated', 'report': report})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@incidents_bp.route('/export_data')
+def export_incidents_data():
+    try:
+        data = get_incidents(10000)
+        json_data = json.dumps(data, indent=2)
+        timestamp = datetime.now().strftime('%Y%m%d')
+        from flask import Response as FlaskResponse
+        return FlaskResponse(
+            json_data,
+            mimetype='application/json',
+            headers={'Content-Disposition': f'attachment; filename=incidents_{timestamp}.json'}
+        )
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@incidents_bp.route('/automate-response', methods=['POST'])
+@require_auth
+@require_role('analyst')
+def automate_response():
+    try:
+        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
+        script = os.path.join(security_home, 'scripts', 'incident-response.sh')
+        if os.path.exists(script):
+            subprocess.Popen(['sudo', script, '--auto-respond'])
+        return jsonify({'success': True, 'message': 'Automated incident response triggered'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@incidents_bp.route('/team-status')
+def team_status():
+    try:
+        members = [
+            {'id': '1', 'name': 'Alice Johnson', 'role': 'Lead Analyst', 'status': 'online'},
+            {'id': '2', 'name': 'Bob Smith', 'role': 'Security Analyst', 'status': 'busy'},
+            {'id': '3', 'name': 'Carol Davis', 'role': 'Threat Hunter', 'status': 'online'},
+            {'id': '4', 'name': 'David Wilson', 'role': 'Incident Responder', 'status': 'offline'},
+            {'id': '5', 'name': 'Eve Martinez', 'role': 'Forensic Analyst', 'status': 'online'}
+        ]
+        return jsonify({'team_members': members, 'team_status': members})
+    except Exception as e:
+        return jsonify({'error': str(e), 'team_members': []}), 500

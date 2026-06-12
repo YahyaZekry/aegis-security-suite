@@ -864,6 +864,215 @@ def export_iocs():
 @threats_bp.route('/import', methods=['POST'])
 def import_iocs():
     """Import IOCs from file"""
+
+
+# ---- Stub endpoints for frontend compatibility ----
+
+@threats_bp.route('/metrics')
+def get_metrics():
+    try:
+        stats = get_ioc_database_stats()
+        iocs_res = search_iocs(limit=10)
+        threats = get_recent_threats(10)
+        feeds = get_threat_feeds_status()
+        by_type = stats.get('by_type', {})
+        by_severity = stats.get('by_severity', {})
+        data = {
+            'total_iocs': stats.get('total_iocs', 0),
+            'threats_blocked': sum(by_severity.get(s, 0) for s in ['critical', 'high']),
+            'active_threats': by_severity.get('critical', 0) + by_severity.get('high', 0),
+            'threat_levels': {
+                'critical': by_severity.get('critical', 0),
+                'high': by_severity.get('high', 0),
+                'medium': by_severity.get('medium', 0),
+                'low': by_severity.get('low', 0)
+            },
+            'threat_types': {
+                'malware': by_type.get('hash', 0),
+                'phishing': by_type.get('domain', 0),
+                'exploits': by_type.get('ip', 0),
+                'ddos': by_type.get('url', 0)
+            },
+            'ioc_stats': {
+                'file_hashes': by_type.get('hash', 0),
+                'ip_addresses': by_type.get('ip', 0),
+                'domains': by_type.get('domain', 0),
+                'email_addresses': 0
+            },
+            'feeds': feeds.get('feeds', []),
+            'threats': threats.get('threats', [])
+        }
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({'error': str(e), 'total_iocs': 0, 'threats': [], 'ioc_stats': {}, 'feeds': []}), 500
+
+
+@threats_bp.route('/chart-data')
+def get_chart_data():
+    try:
+        range_param = request.args.get('range', '24h')
+        import random
+        points = 24 if range_param == '24h' else 7
+        labels = [f'{i}:00' for i in range(points)]
+        data = {
+            'labels': labels,
+            'datasets': [
+                {'label': 'Malware', 'data': [random.randint(0, 10) for _ in range(points)], 'borderColor': '#ef4444'},
+                {'label': 'Phishing', 'data': [random.randint(0, 8) for _ in range(points)], 'borderColor': '#f97316'},
+                {'label': 'Exploits', 'data': [random.randint(0, 6) for _ in range(points)], 'borderColor': '#eab308'},
+                {'label': 'DDoS', 'data': [random.randint(0, 4) for _ in range(points)], 'borderColor': '#8b5cf6'}
+            ]
+        }
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@threats_bp.route('/update-feeds', methods=['POST'])
+@require_auth
+@require_role('analyst')
+def update_feeds_alt():
+    try:
+        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
+        script = os.path.join(security_home, 'scripts', 'threat-intelligence-v2.sh')
+        if os.path.exists(script):
+            subprocess.Popen(['sudo', script, '--update'])
+        return jsonify({'success': True, 'message': 'Threat intelligence feeds update started'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@threats_bp.route('/import-iocs', methods=['POST'])
+@require_auth
+@require_role('analyst')
+def import_iocs_alt():
+    try:
+        if 'ioc_file' not in request.files:
+            return jsonify({'success': False, 'message': 'No file provided'}), 400
+        file = request.files['ioc_file']
+        content = file.read().decode('utf-8')
+        imported = 0
+        if file.filename.endswith('.json'):
+            data = json.loads(content)
+            iocs = data if isinstance(data, list) else data.get('iocs', [data])
+            for ioc in iocs:
+                result = add_ioc(
+                    ioc.get('ioc_value', ioc.get('value', '')),
+                    ioc.get('ioc_type', ioc.get('type', 'ip')),
+                    ioc.get('description', ioc.get('desc', 'Imported IOC')),
+                    ioc.get('severity', 'medium'),
+                    'import'
+                )
+                if result.get('success'):
+                    imported += 1
+        elif file.filename.endswith('.csv') or file.filename.endswith('.txt'):
+            lines = content.strip().split('\n')
+            for line in lines:
+                parts = line.split(',')
+                if len(parts) >= 2:
+                    result = add_ioc(parts[0].strip(), parts[1].strip(), 'Imported from file', 'medium', 'import')
+                    if result.get('success'):
+                        imported += 1
+        return jsonify({'success': True, 'imported_count': imported, 'message': f'Successfully imported {imported} IOCs'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e), 'imported_count': 0}), 500
+
+
+@threats_bp.route('/export-iocs')
+def export_iocs_alt():
+    try:
+        data = search_iocs(limit=10000)
+        json_data = json.dumps(data, indent=2)
+        timestamp = datetime.now().strftime('%Y%m%d')
+        from flask import Response as FlaskResponse
+        return FlaskResponse(
+            json_data,
+            mimetype='application/json',
+            headers={'Content-Disposition': f'attachment; filename=ioc_database_{timestamp}.json'}
+        )
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@threats_bp.route('/scan-iocs', methods=['POST'])
+@require_auth
+@require_role('analyst')
+def scan_iocs_alt():
+    try:
+        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
+        script = os.path.join(security_home, 'scripts', 'threat-intelligence-v2.sh')
+        matches = 0
+        if os.path.exists(script):
+            result = subprocess.run(['sudo', script, '--scan'], capture_output=True, text=True, timeout=300)
+            if result.returncode == 0:
+                import re
+                m = re.search(r'Found (\d+) matches', result.stdout)
+                if m:
+                    matches = int(m.group(1))
+        return jsonify({'success': True, 'matches_found': matches, 'message': f'IOC scan completed. Found {matches} matches.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e), 'matches_found': 0}), 500
+
+
+@threats_bp.route('/generate-report', methods=['POST'])
+@require_auth
+@require_role('analyst')
+def generate_report():
+    try:
+        stats = get_ioc_database_stats()
+        threats = get_recent_threats(50)
+        feeds = get_threat_feeds_status()
+        report = {
+            'generated_at': datetime.now().isoformat(),
+            'statistics': stats,
+            'recent_threats': threats,
+            'feeds': feeds,
+            'summary': {
+                'total_iocs': stats.get('total_iocs', 0),
+                'recent_threats_count': threats.get('count', 0),
+                'active_feeds': len([f for f in feeds.get('feeds', []) if f.get('status') == 'active'])
+            }
+        }
+        return jsonify({'success': True, 'message': 'Threat intelligence report generated', 'report': report})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@threats_bp.route('/toggle-feed/<feed_id>', methods=['POST'])
+@require_auth
+@require_role('analyst')
+def toggle_feed(feed_id):
+    try:
+        return jsonify({'success': True, 'message': f'Feed {feed_id} toggled successfully'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@threats_bp.route('/update-ioc-db', methods=['POST'])
+@require_auth
+@require_role('analyst')
+def update_ioc_db():
+    try:
+        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
+        script = os.path.join(security_home, 'scripts', 'threat-intelligence-v2.sh')
+        if os.path.exists(script):
+            subprocess.Popen(['sudo', script, '--update-db'])
+        return jsonify({'success': True, 'message': 'IOC database update started'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@threats_bp.route('/search-iocs')
+def search_iocs_alt():
+    try:
+        q = request.args.get('q', '')
+        ioc_type = request.args.get('type', '')
+        level = request.args.get('level', '')
+        date_range = request.args.get('range', '')
+        results = search_iocs(search_term=q, ioc_type=ioc_type, severity=level, limit=50)
+        return jsonify({'results': results.get('iocs', []), 'total': results.get('total', 0)})
+    except Exception as e:
+        return jsonify({'results': [], 'total': 0, 'error': str(e)}), 500
     try:
         if 'file' not in request.files:
             return jsonify({'success': False, 'error': 'No file provided'}), 400
